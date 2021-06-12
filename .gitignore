@@ -128,7 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 /.idea/misc.xml
-/pasture/api/models.py
 /.idea/modules.xml
 /.idea/Pasture.iml
 /.idea/inspectionProfiles/profiles_settings.xml
