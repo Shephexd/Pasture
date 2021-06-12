@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'pasture.dash'
+    'pasture.dash',
+    'pasture.api.base.asset',
 ]
 
 MIDDLEWARE = [
