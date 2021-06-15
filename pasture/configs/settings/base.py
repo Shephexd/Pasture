@@ -41,8 +41,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'pasture.dash',
-    'pasture.api.base.asset',
+    'pasture.api.base.assets',
 ]
 
 MIDDLEWARE = [
@@ -74,7 +75,11 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'pasture.configs.wsgi.application'
-
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+}
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
