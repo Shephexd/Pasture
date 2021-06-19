@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from pasture.api.base.assets.models import Asset, DailyPrice
+from pasture.assets.models import Asset, DailyPrice
 
 
 class AssetSerializer(serializers.ModelSerializer):

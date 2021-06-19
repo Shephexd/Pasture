@@ -1,5 +1,5 @@
-from rest_framework import views, viewsets
-from pasture.api.base.assets.models import Asset, DailyPrice
+from rest_framework import viewsets
+from pasture.assets.models import Asset, DailyPrice
 from .serializers import AssetSerializer, DailyPriceSerializer
 
 
