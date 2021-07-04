@@ -7,3 +7,5 @@ Markdown==3.3.4
 mysqlclient==2.0.3
 pytz==2021.1
 sqlparse==0.4.1
+neomodel==4.0.3
+celery==5.1.1
