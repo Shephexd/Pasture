@@ -125,6 +125,34 @@ USE_L10N = True
 USE_TZ = True
 
 
+# Celery Configuration Options
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+
+#: Only add pickle to this list if your broker is secured
+#: from unwanted access (see userguide/security.html)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
+CELERY_TASK_SERIALIZER = 'json'
+
+CELERY_TIMEZONE = "Asia/Seoul"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+
+# celery setting.
+CELERY_CACHE_BACKEND = 'default'
+
+# DEBUG MODE
+if DEBUG:
+    CELERY_ALWAYS_EAGER = True
+
+# django setting.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'my_cache_table',
+    }
+}
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
