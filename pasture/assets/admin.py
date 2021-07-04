@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import DailyPrice, Asset
+from .models import DailyPrice, Asset, AssetUniverse
 
 
 @admin.register(Asset)
@@ -18,10 +18,21 @@ class AssetAdmin(admin.ModelAdmin):
     search_fields = ('symbol', 'description')
 
 
+@admin.register(AssetUniverse)
+class AssetUniverseAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'universe_id',
+        'symbol',
+    )
+    list_filter = ('created_at', 'updated_at')
+
+
 @admin.register(DailyPrice)
 class DailyPriceAdmin(admin.ModelAdmin):
     list_display = (
         'id',
+        'base_date',
         'symbol',
         'open',
         'close',
@@ -33,5 +44,3 @@ class DailyPriceAdmin(admin.ModelAdmin):
         'updated_at'
     )
     list_filter = ('created_at', 'updated_at')
-
-
