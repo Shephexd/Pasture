@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+  webapp:
+    image: pasture-api
+    build: .
+    container_name: webapp
+    ports:
+    - 8888:8888
+    command: python manage.py runserver 0.0.0.0:8888
+  worker:
+    image: pasture-api
+    build: .
+    container_name: worker
+    command: celery -A pasture worker -l info
+  beat:
+    image: pasture-api
+    build: .
+    container_name: beat
+    command: celery -A pasture beat -l info
