@@ -9,9 +9,9 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-
+import json
 from pathlib import Path
-
+from neomodel import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -24,7 +24,13 @@ TEMPLATE_DIR = RESOURCE_DIR.joinpath('templates')
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '(9wxgs9$dn@ljv0bj8simdoas!2a7o)+dn!c8p36baok(k8#2h'
+def get_secret(base_dir: Path):
+    secret_file_path = base_dir.joinpath('configs/settings/secret.json')
+    if not secret_file_path.exists():
+        raise FileNotFoundError(f"Cant' find secret file in path({secret_file_path})")
+
+    return json.load(secret_file_path.open('r'))
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -41,9 +47,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_beat',
+    'django_celery_results',
+    'corsheaders',
     'rest_framework',
+    'django_extensions',
     'pasture.dash',
     'pasture.assets',
+    'django_neomodel',
 ]
 
 MIDDLEWARE = [
@@ -54,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware'
 ]
 
 ROOT_URLCONF = 'pasture.configs.urls'
@@ -83,14 +95,22 @@ REST_FRAMEWORK = {
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
+SECRET = get_secret(BASE_DIR)
+SECRET_KEY = SECRET['SECRET_KEY']
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+config.DATABASE_URL = SECRET['GRAPH_DB']["DATABASE_URL"]
 
+NEOMODEL_SIGNALS = True
+NEOMODEL_FORCE_TIMEZONE = False
+NEOMODEL_MAX_CONNECTION_POOL_SIZE = 50
+
+DATABASES = SECRET['DATABASES']
+# Celery Configuration Options
+for k, v in SECRET['CELERY'].items():
+    locals()[f"CELERY_{k}"] = v
+
+# django cache setting.
+CACHES = SECRET['CACHES']
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -125,35 +145,11 @@ USE_L10N = True
 USE_TZ = True
 
 
-# Celery Configuration Options
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-
-#: Only add pickle to this list if your broker is secured
-#: from unwanted access (see userguide/security.html)
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
-CELERY_TASK_SERIALIZER = 'json'
-
-CELERY_TIMEZONE = "Asia/Seoul"
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60
-
-# celery setting.
-CELERY_CACHE_BACKEND = 'default'
-
 # DEBUG MODE
 if DEBUG:
     CELERY_ALWAYS_EAGER = True
 
-# django setting.
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'my_cache_table',
-    }
-}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
-
 STATIC_URL = '/static/'
