@@ -23,7 +23,7 @@ class DailyPrice(TimeStampable, models.Model):
     symbol = models.CharField(max_length=20, help_text="symbol(ticker)")
     open = models.DecimalField(max_digits=15, decimal_places=5, help_text="open price")
     close = models.DecimalField(max_digits=15, decimal_places=5, help_text="close price")
-    adj_close = models.DecimalField(max_digits=15, decimal_places=5, help_text="Ajd close")
+    adj_close = models.DecimalField(null=True, max_digits=15, decimal_places=5, help_text="Ajd close")
     high = models.DecimalField(max_digits=15, decimal_places=5, help_text="high price")
     low = models.DecimalField(max_digits=15, decimal_places=5, help_text="low price")
     volume = models.DecimalField(max_digits=40, decimal_places=5, help_text="volume")
