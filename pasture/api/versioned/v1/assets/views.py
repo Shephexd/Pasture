@@ -7,8 +7,7 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from pasture.assets.models import Asset, DailyPrice, AssetUniverse
 from .serializers import AssetSerializer, DailyPriceSerializer, AssetUniverseSerializer
-from pasture.assets.neomodels import AssetNode, ClusterNode
-from linchfin.data_handler.reader import DataReader
+from .filters import DailyPriceFilterSet
 
 
 logger = logging.getLogger('pasture')
@@ -34,37 +33,10 @@ class AssetUniverseViewSet(viewsets.ReadOnlyModelViewSet):
         return super().list(request, *args, **kwargs)
 
 
-class DailyPriceViewSet(viewsets.ReadOnlyModelViewSet):
+class DailyPriceViewSet(viewsets.ModelViewSet):
     serializer_class = DailyPriceSerializer
     queryset = DailyPrice.objects.all()
-
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    def get_queryset(self):
-        asset_symbols = Asset.objects.all().values_list('symbol', flat=True)
-        asset_reader = DataReader()
-        ts = asset_reader.get_timeseries(symbols=list(asset_symbols[:5]) + ['BSCF'])
-
-        column_maps = {'Adj Close': 'adj_close', 'Open': 'open', 'Close': 'close',
-                       'High': 'high', 'Low': 'low', 'Volume': 'volume', 'Symbols': 'symbol'}
-
-        try:
-            with transaction.atomic():
-                DailyPrice.objects.filter(symbol__in=ts.Low.columns, created_at__date__in=ts.index)
-        except DatabaseError:
-            pass
-
-        for i, row in ts.swaplevel(i=-2, j=-1, axis=1).iterrows():
-            _daily_price = row.to_frame('value').reset_index().pivot(index='Symbols', columns='Attributes', values='value')
-            _daily_price = _daily_price.reset_index().rename(columns=column_maps)
-            _daily_price['base_date'] = i.strftime('%Y-%m-%d')
-            serializer = DailyPriceSerializer(data=_daily_price.dropna(axis=0).round(2).to_dict(orient='records'), many=True)
-            if serializer.is_valid():
-                serializer.save()
-            else:
-                logger.warning(f"{serializer.errors}")
-        return super().get_queryset()
+    filterset_class = DailyPriceFilterSet
 
 
 class AssetNetworkViewSet(viewsets.GenericViewSet):

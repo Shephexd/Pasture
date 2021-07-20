@@ -11,7 +11,7 @@ class AssetSerializer(serializers.ModelSerializer):
 class DailyPriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyPrice
-        fields = "__all__"
+        fields = ('symbol', 'base_date', 'open', 'close', 'high', 'low', 'adj_close')
 
 
 class AssetUniverseSerializer(serializers.ModelSerializer):
