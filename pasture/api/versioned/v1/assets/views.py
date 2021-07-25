@@ -1,13 +1,13 @@
 import logging
-from typing import List
+import pandas as pd
+from typing import List, Iterable
 from collections import defaultdict, OrderedDict
-from django.db import DatabaseError, transaction
 from neomodel import db
 from rest_framework import viewsets
 from rest_framework.response import Response
 from pasture.assets.models import Asset, DailyPrice, AssetUniverse
 from .serializers import AssetSerializer, DailyPriceSerializer, AssetUniverseSerializer
-from .filters import DailyPriceFilterSet
+from .filters import DailyPriceFilterSet, DailyPriceChangesFilterSet
 
 
 logger = logging.getLogger('pasture')
@@ -37,6 +37,36 @@ class DailyPriceViewSet(viewsets.ModelViewSet):
     serializer_class = DailyPriceSerializer
     queryset = DailyPrice.objects.all()
     filterset_class = DailyPriceFilterSet
+
+
+class DailyPriceChangeViewSet(viewsets.ModelViewSet):
+    serializer_class = DailyPriceSerializer
+    queryset = DailyPrice.objects.all()
+    filterset_class = DailyPriceChangesFilterSet
+
+    def get_pct_changes(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        periods = int(self.request.query_params.get('periods', '1'))
+        if page is not None:
+            df = self.get_pct_change_df([row.to_dict() for row in page], periods=periods)
+            serializer = self.get_serializer([row for i, row in df.iterrows()], many=True)
+            return self.get_paginated_response(serializer.data)
+
+        df = self.get_pct_change_df(queryset.values(), periods=periods)
+        serializer = self.get_serializer([row for i, row in df.iterrows()], many=True)
+        return Response(serializer.data)
+
+    @staticmethod
+    def get_pct_change_df(qs: Iterable[DailyPrice], periods: int):
+        df = pd.DataFrame(qs)
+        df[['open', 'close', 'adj_close', 'high', 'low']] = df[
+            ['open', 'close', 'adj_close', 'high', 'low']].pct_change(periods=periods) * 100
+
+        if not df.empty:
+            return df.iloc[periods:]
+        return df
 
 
 class AssetNetworkViewSet(viewsets.GenericViewSet):

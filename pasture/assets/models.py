@@ -32,5 +32,11 @@ class DailyPrice(TimeStampable, models.Model):
     def __str__(self):
         return f"DailyPrice({self.symbol})"
 
+    def to_dict(self):
+        _dic = self.__dict__.copy()
+        _dic.pop('_state', None)
+        return _dic
+
     class Meta:
         unique_together = ('symbol', 'base_date')
+        ordering = ['-base_date']

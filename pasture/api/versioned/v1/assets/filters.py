@@ -6,5 +6,9 @@ class DailyPriceFilterSet(FilterSet):
     from_date = filters.DateFilter(field_name='base_date', lookup_expr='gte')
     to_date = filters.DateFilter(field_name='base_date', lookup_expr='lte')
 
-    def filter_queryset(self, queryset):
-        return super().filter_queryset(queryset)
+
+class DailyPriceChangesFilterSet(FilterSet):
+    symbol = filters.CharFilter(label='ticker')
+    from_date = filters.DateFilter(field_name='base_date', lookup_expr='gte')
+    to_date = filters.DateFilter(field_name='base_date', lookup_expr='lte')
+    periods = filters.NumberFilter(method='do_nothing')
