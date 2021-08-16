@@ -21,9 +21,8 @@ class AssetAdmin(admin.ModelAdmin):
 @admin.register(AssetUniverse)
 class AssetUniverseAdmin(admin.ModelAdmin):
     list_display = (
-        'id',
-        'universe_id',
-        'symbol',
+        'symbols',
+        'name',
     )
     list_filter = ('created_at', 'updated_at')
 

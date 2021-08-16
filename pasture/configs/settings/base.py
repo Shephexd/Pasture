@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'django_extensions',
+    'django_filters',
     'pasture.dash',
     'pasture.assets',
     'django_neomodel',
