@@ -9,7 +9,6 @@ from pasture.api.versioned.v1.assets.filters import DailyPriceFilterSet
 
 from linchfin.base.dataclasses.entities import Portfolio, Weights
 from linchfin.base.dataclasses.value_types import TimeSeries, Feature
-from linchfin.core.clustering.hierarchical import HierarchicalCorrCluster
 from linchfin.core.portfolio.hierarchical import HierarchyRiskParityEngine
 from linchfin.core.analysis.profiler import AssetProfiler
 from linchfin.common.calc import calc_daily_returns, calc_corr, calc_portfolio_return
@@ -29,8 +28,10 @@ class UniverseLookupMixin:
         return universe.get()
 
     def get_pivot(self, queryset, values='close'):
-        ts = TimeSeries(pd.DataFrame(queryset.values()).pivot(index='base_date', values=values, columns='symbol').astype(float))
-        ts.index = pd.to_datetime(ts.index)
+        ts = TimeSeries(pd.DataFrame(queryset.values()))
+        if not ts.empty:
+            ts = ts.pivot(index='base_date', values=values, columns='symbol').astype(float)
+            ts.index = pd.to_datetime(ts.index)
         return ts
 
 
@@ -53,9 +54,12 @@ class CorrelationViewSet(UniverseLookupMixin, viewsets.ModelViewSet):
         _sorted_dist = self._cluster.get_sorted_corr(corr=dist.value, indices=diag_indices)
         w = self._cluster.get_recursive_bisect(corr=corr, sort_ix=diag_indices)
         w.index = corr.columns[w.index]
+        asset_description = {i['symbol']: i for i in Asset.objects.filter(symbol__in=w.index).values()}
         corr_serializer = CorrListSerializer(data=list(_sorted_dist.iterrows()))
         asset_serializer = PortfolioRowSerializer(data=[
-            {'symbol': i, 'weight': round(w * 100, 3)} for i, w in w.iteritems()], many=True)
+            {'symbol': i, 'weight': round(w * 100, 3)} for i, w in w.iteritems()],
+            context={'asset_description': asset_description},
+            many=True)
         corr_serializer.is_valid(raise_exception=True)
         asset_serializer.is_valid(raise_exception=True)
         return Response({'corr': corr_serializer.data, 'portfolio': asset_serializer.data})

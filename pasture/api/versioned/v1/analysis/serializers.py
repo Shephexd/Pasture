@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from pasture.assets.models import Asset, DailyPrice, AssetUniverse
 
 
 class CorrRowSerializer(serializers.Serializer):
@@ -26,3 +25,23 @@ class CorrListSerializer(serializers.ListSerializer):
 class PortfolioRowSerializer(serializers.Serializer):
     symbol = serializers.CharField()
     weight = serializers.DecimalField(max_digits=7, decimal_places=4)
+    category = serializers.HiddenField(default='')
+    sub_category = serializers.HiddenField(default='')
+
+    def get_category(self, obj):
+        _asset_description = self.get_asset_description(symbol=obj['symbol'])
+        return _asset_description.get('category', 'UNDEFINED')
+
+    def get_sub_category(self, obj):
+        _asset_description = self.get_asset_description(symbol=obj['symbol'])
+        return _asset_description.get('sub_category', 'UNDEFINED')
+
+    def get_asset_description(self, symbol):
+        _desc = self.context.get('asset_description', {})
+        return _desc.get(symbol, {})
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['category'] = self.get_category(instance)
+        representation['sub_category'] = self.get_sub_category(instance)
+        return representation
