@@ -16,13 +16,13 @@ logger = logging.getLogger('pasture')
 class AssetViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AssetSerializer
     queryset = Asset.objects.all()
+    filterset_class = AssetFilterSet
 
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
 
 class AssetUniverseViewSet(viewsets.ReadOnlyModelViewSet):
-    lookup_field = 'universe_id'
     queryset = AssetUniverse.objects.all()
     serializer_class = AssetUniverseSerializer
 
@@ -61,8 +61,8 @@ class DailyPriceChangeViewSet(viewsets.ModelViewSet):
     @staticmethod
     def get_pct_change_df(qs: Iterable[DailyPrice], periods: int):
         df = pd.DataFrame(qs)
-        df[['open', 'close', 'adj_close', 'high', 'low']] = df[
-            ['open', 'close', 'adj_close', 'high', 'low']].pct_change(periods=periods) * 100
+        df[['open', 'close', 'adj_close', 'high', 'low']] = (df[
+            ['open', 'close', 'adj_close', 'high', 'low']].pct_change(periods=periods) + 1).astype(float).cumprod()
 
         if not df.empty:
             return df.iloc[periods:]
