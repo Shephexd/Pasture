@@ -5,21 +5,22 @@ from collections import defaultdict, OrderedDict
 from neomodel import db
 from rest_framework import viewsets
 from rest_framework.response import Response
+from pasture.common.viewset import SerializerMapMixin
 from pasture.assets.models import Asset, DailyPrice, AssetUniverse
-from .serializers import AssetSerializer, DailyPriceSerializer, AssetUniverseSerializer
-from .filters import DailyPriceFilterSet, DailyPriceChangesFilterSet
+from .serializers import AssetSerializer, SimpleAssetSerializer, DailyPriceSerializer, AssetUniverseSerializer
+from .filters import AssetFilterSet, DailyPriceFilterSet, DailyPriceChangesFilterSet
 
 
 logger = logging.getLogger('pasture')
 
 
-class AssetViewSet(viewsets.ReadOnlyModelViewSet):
+class AssetViewSet(SerializerMapMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = AssetSerializer
     queryset = Asset.objects.all()
     filterset_class = AssetFilterSet
-
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+    serializer_class_map = {
+        'list': SimpleAssetSerializer
+    }
 
 
 class AssetUniverseViewSet(viewsets.ReadOnlyModelViewSet):
@@ -28,9 +29,6 @@ class AssetUniverseViewSet(viewsets.ReadOnlyModelViewSet):
 
     def filter_queryset(self, queryset):
         return queryset.filter(**self.kwargs)
-
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
 
 
 class DailyPriceViewSet(viewsets.ModelViewSet):

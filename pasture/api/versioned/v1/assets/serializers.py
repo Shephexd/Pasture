@@ -8,6 +8,12 @@ class AssetSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class SimpleAssetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Asset
+        fields = ("asset_type", "symbol", "category", "sub_category", "description")
+
+
 class DailyPriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyPrice
