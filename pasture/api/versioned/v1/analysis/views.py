@@ -80,12 +80,24 @@ class PerformanceViewSet(UniverseLookupMixin, viewsets.ModelViewSet):
         profiled = profiled.round(3)
         return Response(profiled.reset_index().to_dict(orient='records'))
 
-    def calc_backtest(self, request, *args, **kwargs):
+    def backtest_universe(self, request, *args, **kwargs):
         universe = self.get_universe(**kwargs)
         queryset = self.filter_queryset(self.queryset).filter(symbol__in=universe.symbols)
         time_series = self.get_pivot(queryset=queryset).dropna(axis=0)
         daily_returns = calc_daily_returns(time_series)
         w = {row['symbol']: row['weight'] for row in request.data['portfolio']}
         port = Portfolio(weights=w)
+        portfolio_returns = calc_portfolio_return(portfolio=port, daily_returns=daily_returns)
+        return Response([{'x': i, 'y': row / 100} for i, row in portfolio_returns.iteritems()])
+
+    def backtest_portfolio(self, request, *args, **kwargs):
+        serializer = PortfolioRowSerializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        port = Portfolio(weights={row['symbol']: row['weight'] for row in serializer.data})
+
+        queryset = self.filter_queryset(self.queryset).filter(symbol__in=port.symbols)
+        time_series = self.get_pivot(queryset=queryset).dropna(axis=0)
+        daily_returns = calc_daily_returns(time_series)
+
         portfolio_returns = calc_portfolio_return(portfolio=port, daily_returns=daily_returns)
         return Response([{'x': i, 'y': row / 100} for i, row in portfolio_returns.iteritems()])

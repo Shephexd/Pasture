@@ -28,6 +28,10 @@ class PortfolioRowSerializer(serializers.Serializer):
     category = serializers.HiddenField(default='')
     sub_category = serializers.HiddenField(default='')
 
+    def to_internal_value(self, data):
+        data['symbol'] = data['symbol'].upper()
+        return data
+
     def get_category(self, obj):
         _asset_description = self.get_asset_description(symbol=obj['symbol'])
         return _asset_description.get('category', 'UNDEFINED')
