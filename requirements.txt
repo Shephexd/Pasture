@@ -33,4 +33,5 @@ sqlparse==0.4.1
 vine==5.0.0
 wcwidth==0.2.5
 zipp==3.5.0
+drf-spectacular==0.18.0
 git+git://github.com/shephexd/linchfin@develop
