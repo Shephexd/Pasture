@@ -23,32 +23,11 @@ class AssetViewSet(SerializerMapMixin, viewsets.ReadOnlyModelViewSet):
     }
     lookup_field = 'symbol'
 
-    def list(self, request, *args, **kwargs):
-        """
-        List Assets
-        ---
-        """
-        return super().list(request, *args, **kwargs)
-
-    def retrieve(self, request, *args, **kwargs):
-        """
-        Retrieve Asset by symbol
-        ---
-        """
-        return super().retrieve(request, *args, **kwargs)
-
 
 class AssetUniverseViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AssetUniverse.objects.all()
     serializer_class = AssetUniverseSerializer
     filter_fields = ('universe_id', )
-
-    def list(self, request, *args, **kwargs):
-        """
-        List Asset Universe
-        ---
-        """
-        return super().list(request, *args, **kwargs)
 
 
 class DailyPriceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -97,11 +76,8 @@ class AssetNetworkViewSet(viewsets.GenericViewSet):
         return _cluster_map
 
     def list(self, request, *args, **kwargs):
-        print(ClusterNode.nodes.all())
-        print(AssetNode.nodes.all())
-        matched, names = db.cypher_query('MATCH (n)-[r:HAS]->(m:Asset) return n, r, m')
+        matched, names = db.cypher_query('MATCH (n)-[r:HAS]->(m:Asset) return n, r, m LIMIT 40')
         cluster_rel = defaultdict(list)
-        tree_paths = defaultdict(default_factory=lambda: defaultdict(list))
 
         for _cluster, r, _asset in matched:
             cluster_name = _cluster._properties['name']
