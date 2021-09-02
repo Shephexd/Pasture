@@ -3,7 +3,7 @@ import pandas as pd
 from typing import List, Iterable
 from collections import defaultdict, OrderedDict
 from neomodel import db
-from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 from rest_framework.response import Response
 from pasture.common.viewset import SerializerMapMixin
 from pasture.assets.models import Asset, DailyPrice, AssetUniverse
@@ -21,23 +21,43 @@ class AssetViewSet(SerializerMapMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class_map = {
         'list': SimpleAssetSerializer
     }
+    lookup_field = 'symbol'
+
+    def list(self, request, *args, **kwargs):
+        """
+        List Assets
+        ---
+        """
+        return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieve Asset by symbol
+        ---
+        """
+        return super().retrieve(request, *args, **kwargs)
 
 
 class AssetUniverseViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AssetUniverse.objects.all()
     serializer_class = AssetUniverseSerializer
+    filter_fields = ('universe_id', )
 
-    def filter_queryset(self, queryset):
-        return queryset.filter(**self.kwargs)
+    def list(self, request, *args, **kwargs):
+        """
+        List Asset Universe
+        ---
+        """
+        return super().list(request, *args, **kwargs)
 
 
-class DailyPriceViewSet(viewsets.ModelViewSet):
+class DailyPriceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = DailyPriceSerializer
     queryset = DailyPrice.objects.all()
     filterset_class = DailyPriceFilterSet
 
 
-class DailyPriceChangeViewSet(viewsets.ModelViewSet):
+class DailyPriceChangeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = DailyPriceSerializer
     queryset = DailyPrice.objects.all()
     filterset_class = DailyPriceChangesFilterSet

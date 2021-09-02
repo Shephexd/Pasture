@@ -6,6 +6,7 @@ from .views import (
 )
 
 router = DefaultRouter()
+router.register('corr', CorrelationViewSet)
 
 urlpatterns = [
     path('corr/<universe_id>', CorrelationViewSet.as_view({'get': 'get'})),

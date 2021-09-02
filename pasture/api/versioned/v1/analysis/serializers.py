@@ -1,4 +1,10 @@
+from django.utils import timezone
 from rest_framework import serializers
+
+
+class CorrInputSerializer(serializers.Serializer):
+    symbols = serializers.ListSerializer(child=serializers.CharField(), help_text="asset symbol")
+    min_periods = serializers.IntegerField(default=5, help_text="min periods")
 
 
 class CorrRowSerializer(serializers.Serializer):
@@ -7,7 +13,7 @@ class CorrRowSerializer(serializers.Serializer):
     value = serializers.FloatField()
 
 
-class CorrListSerializer(serializers.ListSerializer):
+class DistanceListSerializer(serializers.ListSerializer):
     child = CorrRowSerializer()
 
     def to_internal_value(self, data):
@@ -49,3 +55,14 @@ class PortfolioRowSerializer(serializers.Serializer):
         representation['category'] = self.get_category(instance)
         representation['sub_category'] = self.get_sub_category(instance)
         return representation
+
+
+class BacktestInputSerializer(serializers.Serializer):
+    weights = serializers.DictField(help_text="asset weights", child=serializers.FloatField())
+    from_date = serializers.DateField(help_text="backtest start date", default=lambda: timezone.now().date() - timezone.timedelta(days=365))
+    to_date = serializers.DateField(help_text="backtest end date", default=timezone.now().date())
+
+    def validate_weights(self, w):
+        if sum(w.values()) != 1:
+            raise ValueError("weight sum must be 1")
+        return w
