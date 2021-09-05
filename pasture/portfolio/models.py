@@ -1,9 +1,10 @@
 from uuid import uuid4
 from django.db import models
-from django.contrib.postgres.fields import JSONField
 from pasture.common.behaviors import TimeStampable
 
 
 class Portfolio(TimeStampable, models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4)
-    weights = JSONField(help_text="weights")
+    weights = models.JSONField(help_text="weights")
+    base_date = models.DateField(help_text="base_date")
+    description = models.TextField(default="", help_text="portfolio description")
