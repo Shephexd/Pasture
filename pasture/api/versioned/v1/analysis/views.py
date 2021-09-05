@@ -3,7 +3,7 @@ import pandas as pd
 from rest_framework import exceptions
 from rest_framework import viewsets, mixins
 from rest_framework.response import Response
-from pasture.common.viewset import SerializerMapMixin
+from pasture.common.viewset import SerializerMapMixin, QuerysetMapMixin
 from pasture.assets.models import Asset, DailyPrice, AssetUniverse
 from pasture.api.versioned.v1.assets.serializers import AssetSerializer
 from pasture.api.versioned.v1.assets.filters import DailyPriceFilterSet
@@ -12,11 +12,11 @@ from linchfin.base.dataclasses.entities import Portfolio, Weights
 from linchfin.base.dataclasses.value_types import TimeSeries, Feature
 from linchfin.core.portfolio.hierarchical import HierarchyRiskParityEngine
 from linchfin.core.analysis.profiler import AssetProfiler
-from linchfin.common.calc import calc_daily_returns, calc_corr, calc_portfolio_return
+from linchfin.common.calc import calc_daily_returns, calc_cumulative_returns, calc_portfolio_return
 from .serializers import (
     CorrInputSerializer,
     DistanceListSerializer, PortfolioRowSerializer,
-    BacktestInputSerializer
+    PerformanceInputSerializer, MetricOutputSerializer
 )
 
 logger = logging.getLogger('pasture')
@@ -40,8 +40,9 @@ class UniverseLookupMixin:
         return ts
 
 
-class CorrelationViewSet(SerializerMapMixin, UniverseLookupMixin,
-                         mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+class CorrelationViewSet(SerializerMapMixin, QuerysetMapMixin, UniverseLookupMixin,
+                         mixins.RetrieveModelMixin,
+                         mixins.CreateModelMixin, viewsets.GenericViewSet):
     serializer_class = AssetSerializer
     queryset = DailyPrice.objects.all()
     filterset_class = DailyPriceFilterSet
@@ -49,6 +50,9 @@ class CorrelationViewSet(SerializerMapMixin, UniverseLookupMixin,
     _cluster = HierarchyRiskParityEngine(asset_universe=[])
     serializer_class_map = {
         'create': CorrInputSerializer
+    }
+    queryset_map = {
+        'get': AssetUniverse.objects.all()
     }
 
     def get_prices(self, symbols):
@@ -86,48 +90,58 @@ class CorrelationViewSet(SerializerMapMixin, UniverseLookupMixin,
         return Response({'corr': corr_serializer.data})
 
 
-class PerformanceViewSet(SerializerMapMixin, UniverseLookupMixin, viewsets.ModelViewSet):
-    serializer_class = AssetSerializer
+class PerformanceViewSet(SerializerMapMixin, QuerysetMapMixin, UniverseLookupMixin,
+                         viewsets.ModelViewSet):
+    serializer_class = PerformanceInputSerializer
     queryset = DailyPrice.objects.all()
     filterset_class = DailyPriceFilterSet
-    lookup_field = 'universe_id'
-    serializer_class_map = {
-        'backtest_portfolio': BacktestInputSerializer
-    }
 
-    def calc_performance(self, request, *args, **kwargs):
-        universe = self.get_universe(**kwargs)
+    def calc_metric(self, request, *args, **kwargs):
         asset_profiler = AssetProfiler()
-        queryset = self.filter_queryset(self.queryset).filter(symbol__in=universe.symbols + [asset_profiler.bm_ticker])
-        time_series = self.get_pivot(queryset=queryset)
-        profiled = asset_profiler.profile(prices=time_series, factors=['sharp_ratio', 'beta', 'cumulative_returns'])
-        profiled = profiled.round(3)
-        return Response(profiled.reset_index().to_dict(orient='records'))
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        port = Portfolio(weights={w['symbol']: w['weight'] for w in serializer.validated_data['portfolio']})
 
-    def backtest_universe(self, request, *args, **kwargs):
-        universe = self.get_universe(**kwargs)
-        queryset = self.filter_queryset(self.queryset).filter(symbol__in=universe.symbols)
-        time_series = self.get_pivot(queryset=queryset).dropna(axis=0)
-        daily_returns = calc_daily_returns(time_series)
-        w = {row['symbol']: row['weight'] for row in request.data['portfolio']}
-        port = Portfolio(weights=w)
-        portfolio_returns = calc_portfolio_return(portfolio=port, daily_returns=daily_returns)
-        return Response([{'x': i, 'y': row / 100} for i, row in portfolio_returns.iteritems()])
+        filter_kwargs = {
+            'base_date__gte': serializer.validated_data['from_date'],
+            'base_date__lte': serializer.validated_data['to_date']
+        }
+        queryset = self.queryset.filter(symbol__in=port.symbols + serializer.validated_data['bench_marks'],
+                                        **filter_kwargs)
+
+        ts = self.get_pivot(queryset=queryset).dropna(axis=0)
+        if ts.empty:
+            raise exceptions.ValidationError("No TimeSeries for backtest")
+        daily_returns = calc_daily_returns(ts)
+
+        portfolio_returns = TimeSeries(1 + calc_portfolio_return(portfolio=port, daily_returns=daily_returns), columns=['portfolio'])
+        for bm in serializer.validated_data['bench_marks']:
+            portfolio_returns[bm] = calc_cumulative_returns(daily_returns[bm])
+
+        profiled = asset_profiler.profile(prices=portfolio_returns,
+                                          factors=['monthly_volatility', 'sharp_ratio', 'beta', 'total_returns', 'cumulative_returns'])
+        profiled = profiled.round(3)
+
+        output_serializer = MetricOutputSerializer({'metrics': profiled.T.reset_index().to_dict(orient='records')})
+        return Response(output_serializer.data)
 
     def backtest_portfolio(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        port = Portfolio(weights=serializer.validated_data['weights'])
+        port = Portfolio(weights={w['symbol']: w['weight'] for w in serializer.validated_data['portfolio']})
 
         filter_kwargs = {
             'base_date__gte': serializer.validated_data['from_date'],
             'base_date__lte': serializer.validated_data['to_date']
         }
         queryset = self.queryset.filter(symbol__in=port.symbols, **filter_kwargs)
+        portfolio_returns = self.run_backtest(queryset=queryset, portfolio=port)
+        return Response([{'x': i, 'y': row} for i, row in portfolio_returns.iteritems()])
+
+    def run_backtest(self, queryset, portfolio):
         ts = self.get_pivot(queryset=queryset).dropna(axis=0)
         if ts.empty:
             raise exceptions.ValidationError("No TimeSeries for backtest")
         daily_returns = calc_daily_returns(ts)
 
-        portfolio_returns = calc_portfolio_return(portfolio=port, daily_returns=daily_returns)
-        return Response([{'x': i, 'y': row / 100} for i, row in portfolio_returns.iteritems()])
+        return calc_portfolio_return(portfolio=portfolio, daily_returns=daily_returns)

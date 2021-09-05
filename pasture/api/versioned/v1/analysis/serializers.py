@@ -57,12 +57,26 @@ class PortfolioRowSerializer(serializers.Serializer):
         return representation
 
 
-class BacktestInputSerializer(serializers.Serializer):
-    weights = serializers.DictField(help_text="asset weights", child=serializers.FloatField())
+class PerformanceInputSerializer(serializers.Serializer):
+    portfolio = serializers.ListField(help_text="asset weights", child=PortfolioRowSerializer())
     from_date = serializers.DateField(help_text="backtest start date", default=lambda: timezone.now().date() - timezone.timedelta(days=365))
     to_date = serializers.DateField(help_text="backtest end date", default=timezone.now().date())
+    bench_marks = serializers.ListField(help_text="target bench mart assets", default=["SPY"])
 
-    def validate_weights(self, w):
-        if sum(w.values()) != 1:
+    def validate_portfolio(self, port):
+        if sum([float(w['weight']) for w in port]) != 1:
             raise ValueError("weight sum must be 1")
-        return w
+        return port
+
+
+class MetricOutputSerializer(serializers.Serializer):
+    metrics = serializers.ListField(help_text="metric", child=serializers.DictField(help_text="metric"))
+    factor_keys = serializers.SerializerMethodField(help_text="metric keys")
+    asset_keys = serializers.SerializerMethodField(help_text="metric keys")
+
+    def get_factor_keys(self, attrs):
+        return [m['index'] for m in attrs['metrics']]
+
+    def get_asset_keys(self, attrs):
+        asset_keys = set(sum([list(m.keys()) for m in attrs['metrics']], [])) - {'index'}
+        return asset_keys
