@@ -43,5 +43,20 @@ class Migration(migrations.Migration):
             model_name='assetuniverse',
             name='universe_id',
             field=models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False),
-        )
+        ),
+        migrations.AlterField(
+            model_name='assetuniverse',
+            name='description',
+            field=models.TextField(blank=True, default='', help_text='description'),
+        ),
+        migrations.AlterField(
+            model_name='assetuniverse',
+            name='name',
+            field=models.CharField(blank=True, default='', help_text='universe name', max_length=100),
+        ),
+        migrations.RenameField(
+            model_name='assetuniverse',
+            old_name='universe_id',
+            new_name='id',
+        ),
     ]
