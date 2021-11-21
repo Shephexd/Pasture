@@ -3,7 +3,7 @@ import pandas as pd
 from typing import List, Iterable
 from collections import defaultdict, OrderedDict
 from neomodel import db
-from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 from rest_framework.response import Response
 from pasture.common.viewset import SerializerMapMixin
 from pasture.assets.models import Asset, DailyPrice, AssetUniverse
@@ -21,23 +21,22 @@ class AssetViewSet(SerializerMapMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class_map = {
         'list': SimpleAssetSerializer
     }
+    lookup_field = 'symbol'
 
 
 class AssetUniverseViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AssetUniverse.objects.all()
     serializer_class = AssetUniverseSerializer
-
-    def filter_queryset(self, queryset):
-        return queryset.filter(**self.kwargs)
+    filter_fields = ('universe_id', )
 
 
-class DailyPriceViewSet(viewsets.ModelViewSet):
+class DailyPriceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = DailyPriceSerializer
     queryset = DailyPrice.objects.all()
     filterset_class = DailyPriceFilterSet
 
 
-class DailyPriceChangeViewSet(viewsets.ModelViewSet):
+class DailyPriceChangeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = DailyPriceSerializer
     queryset = DailyPrice.objects.all()
     filterset_class = DailyPriceChangesFilterSet
@@ -77,11 +76,8 @@ class AssetNetworkViewSet(viewsets.GenericViewSet):
         return _cluster_map
 
     def list(self, request, *args, **kwargs):
-        print(ClusterNode.nodes.all())
-        print(AssetNode.nodes.all())
-        matched, names = db.cypher_query('MATCH (n)-[r:HAS]->(m:Asset) return n, r, m')
+        matched, names = db.cypher_query('MATCH (n)-[r:HAS]->(m:Asset) return n, r, m LIMIT 40')
         cluster_rel = defaultdict(list)
-        tree_paths = defaultdict(default_factory=lambda: defaultdict(list))
 
         for _cluster, r, _asset in matched:
             cluster_name = _cluster._properties['name']

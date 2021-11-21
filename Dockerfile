@@ -1,10 +1,24 @@
-FROM python:3.7
+FROM python:3.7-slim
 
-RUN apt-get update && \
-apt-get install -y libgeos-c1v5 libgeos-3.7.1 && \
-mkdir -p /webapp/server
+# set args
+ARG UID=1000
+ARG GID=1000
 
-ADD . /webapp/server
-WORKDIR /webapp/server
-RUN pip install -r requirements.txt
-CMD ['python3']
+# set envs
+ENV PORT=8080
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt install git -y
+
+COPY ./requirements.txt /app/requirements.txt
+RUN pip install -r ./requirements.txt
+
+COPY . /app
+RUN groupadd -g $GID appuser \
+    && adduser appuser --uid $UID --gid $GID
+USER appuser
+
+# RUN gunicorn
+CMD ["/bin/bash", "app/conf/run.sh"]

@@ -16,7 +16,7 @@ class Asset(TimeStampable, models.Model):
 
 
 class AssetUniverse(TimeStampable, models.Model):
-    universe_id = models.UUIDField(default=uuid4, primary_key=True)
+    id = models.UUIDField(default=uuid4, primary_key=True)
     name = models.CharField(default='', max_length=100, help_text="universe name", blank=True)
     description = models.TextField(default='', help_text="description", blank=True)
     symbols = ArrayField(
