@@ -1,0 +1,7 @@
+build:
+  docker:
+    web: Dockerfile
+  config:
+    ENV: heroku
+run:
+  web: /bin/bash /app/run.sh

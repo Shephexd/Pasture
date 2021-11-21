@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 from rest_framework import viewsets, mixins, response, exceptions
 
-from linchfin.base.dataclasses.value_types import TimeSeries
+from linchfin.base.dataclasses.values import TimeSeries
 from linchfin.common.calc import calc_daily_returns, calc_portfolio_return
 from linchfin.core.portfolio.hierarchical import HierarchyRiskParityEngine
 from pasture.assets.models import Asset, DailyPrice
