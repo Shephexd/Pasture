@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 import json
 from pathlib import Path
-from neomodel import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -123,24 +122,6 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
-# Database
-# https://docs.djangoproject.com/en/3.1/ref/settings/#databases
-SECRET = get_secret(BASE_DIR)
-SECRET_KEY = SECRET['SECRET_KEY']
-
-config.DATABASE_URL = SECRET['GRAPH_DB']["DATABASE_URL"]
-
-NEOMODEL_SIGNALS = True
-NEOMODEL_FORCE_TIMEZONE = False
-NEOMODEL_MAX_CONNECTION_POOL_SIZE = 50
-
-DATABASES = SECRET['DATABASES']
-# Celery Configuration Options
-for k, v in SECRET['CELERY'].items():
-    locals()[f"CELERY_{k}"] = v
-
-# django cache setting.
-CACHES = SECRET['CACHES']
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
