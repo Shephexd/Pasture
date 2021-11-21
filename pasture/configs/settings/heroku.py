@@ -14,6 +14,7 @@ DB_TYPE_ENGINE_MAP = {
     "postgres": "django.db.backends.postgresql_psycopg2"
 }
 
+ALLOWED_HOSTS = os.getenv('HOSTNAME').split(',')
 
 DEBUG = False
 if os.getenv('DEBUG', False):
