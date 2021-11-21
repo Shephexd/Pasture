@@ -27,7 +27,6 @@ class AssetViewSet(SerializerMapMixin, viewsets.ReadOnlyModelViewSet):
 class AssetUniverseViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AssetUniverse.objects.all()
     serializer_class = AssetUniverseSerializer
-    filter_fields = ('universe_id', )
 
 
 class DailyPriceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
