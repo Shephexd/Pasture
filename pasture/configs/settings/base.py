@@ -15,7 +15,7 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 RESOURCE_DIR = BASE_DIR.joinpath('resources')
-STATIC_DIR = RESOURCE_DIR.joinpath('static')
+STATIC_ROOT = RESOURCE_DIR.joinpath('static')
 TEMPLATE_DIR = RESOURCE_DIR.joinpath('templates')
 
 
@@ -64,6 +64,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -160,6 +161,13 @@ USE_TZ = True
 if DEBUG:
     CELERY_ALWAYS_EAGER = True
 
+SECRET_KEY = 'SECRET_KEY'
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'pasture',
+    }
+}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
