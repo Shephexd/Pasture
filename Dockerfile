@@ -17,8 +17,8 @@ RUN pip install -r ./requirements.txt
 
 COPY . /app
 RUN groupadd -g $GID appuser \
-    && adduser appuser --uid $UID --gid $GID \
-    && python manage.py collectstatic
+    && adduser appuser --uid $UID --gid $GID
+RUN python manage.py collectstatic --no-input
 USER appuser
 
 # RUN gunicorn

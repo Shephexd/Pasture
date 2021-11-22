@@ -4,7 +4,10 @@ import re
 
 def parse_database_url(db_url):
     regex = re.compile(DB_URL_PATTERN)
-    db_setting = regex.match(db_url).groupdict()
+    matched = regex.match(db_url)
+    if not matched:
+        return {}
+    db_setting = matched.groupdict()
     db_setting['ENGINE'] = DB_TYPE_ENGINE_MAP[db_setting.pop('DB_TYPE')]
     return db_setting
 
@@ -14,7 +17,7 @@ DB_TYPE_ENGINE_MAP = {
     "postgres": "django.db.backends.postgresql_psycopg2"
 }
 
-ALLOWED_HOSTS = os.getenv('HOSTNAME').split(',')
+ALLOWED_HOSTS = os.getenv('HOSTNAME', '').split(',')
 
 DEBUG = False
 if os.getenv('DEBUG', False):
@@ -22,7 +25,7 @@ if os.getenv('DEBUG', False):
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
-SECRET_KEY = os.getenv('SECRET_KEY')
-DEFAULT_DB_URL = os.getenv('DATABASE_URL')
+SECRET_KEY = os.getenv('SECRET_KEY', 'SECRET_KEY')
+DEFAULT_DB_URL = os.getenv('DATABASE_URL', '')
 DEFAULT_DB = parse_database_url(DEFAULT_DB_URL)
 DATABASES = {"default": DEFAULT_DB}
