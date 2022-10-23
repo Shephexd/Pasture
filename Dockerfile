@@ -13,7 +13,7 @@ ENV PORT=8080
 WORKDIR /app
 
 RUN apt-get update \
-    && apt install git -y
+    && apt install git libgeos-dev -y
 
 COPY --from=builder /opt/linchfin/build/lib/linchfin /usr/local/lib/python3.8/site-packages/linchfin
 COPY ./requirements.txt /app/requirements.txt
