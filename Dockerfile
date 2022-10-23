@@ -1,7 +1,7 @@
 ARG LINCHFIN_IMAGE=linchfin
 FROM $LINCHFIN_IMAGE AS builder
 
-FROM python:3.8-slim
+FROM python:3.8
 
 # set args
 ARG UID=1000
