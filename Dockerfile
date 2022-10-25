@@ -15,8 +15,9 @@ RUN apt-get update \
     && apt install git libgeos-dev -y
 
 COPY --from=builder /opt/linchfin/build/lib/linchfin /usr/local/lib/python3.8/site-packages/linchfin
-COPY ./requirements.txt /app/requirements.txt
-RUN pip install -r ./requirements.txt
+COPY --from=builder /opt/linchfin/requirements.txt ./linchfin_requirements.txt
+RUN pip3 install -r ./linchfin_requirements.txt \
+ && pip3 install -r ./requirements.txt
 
 COPY . /app
 RUN python manage.py collectstatic --no-input
