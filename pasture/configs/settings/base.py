@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'django_filters',
     # 'pasture.dash',
     'pasture.assets',
+    'pasture.account',
     'pasture.portfolio',
     'pasture.market',
     'django_neomodel',
