@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 import json
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -215,3 +216,12 @@ DATABASES = {
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 STATIC_URL = '/static/'
+
+
+# CELERY SETTINGS
+CELERY_TIMEZONE = 'Asia/Seoul'
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", 'redis://redis_server:6379/1')
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", 'redis://redis_server:6379/2')
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"

@@ -1,3 +1,3 @@
-from pasture.configs.celery import app as celery
+from pasture.configs.celery import app as celery_app
 
-__all__ = ('celery', )
+__all__ = ('celery_app', )
