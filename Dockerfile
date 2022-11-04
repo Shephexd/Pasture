@@ -27,7 +27,8 @@ RUN pip3 install -r /app/linchfin_requirements.txt \
  && pip3 install -r /app/requirements.txt
 
 COPY . /app
-RUN python manage.py collectstatic --no-input
+RUN python manage.py collectstatic --no-input \
+    && chown -R $USERNAME:$USERNAME /app
 USER $USERNAME
 
 # RUN gunicorn
