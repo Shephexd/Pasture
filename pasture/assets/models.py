@@ -10,6 +10,7 @@ class Asset(TimeStampable, models.Model):
     category = models.CharField(max_length=50, help_text="category")
     sub_category = models.CharField(max_length=100, help_text="sub category")
     description = models.TextField(help_text="description", blank=True, null=True)
+    market_code = models.CharField(max_length=5, help_text="", blank=True, null=True)
 
     class Meta:
         unique_together = ('asset_type', 'symbol', 'category', 'sub_category')

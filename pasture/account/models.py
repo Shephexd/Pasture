@@ -35,6 +35,9 @@ class OrderHistory(TimeStampable, models.Model):
     loan_date = models.CharField(blank=True, default="", max_length=20)
     reject_reason_name = models.CharField(blank=True, default="", max_length=200)
 
+    class Meta:
+        unique_together = ('order_date', 'order_no', 'account_alias')
+
 
 class TradeHistory(TimeStampable, models.Model):
     account_alias = models.CharField(max_length=100)
