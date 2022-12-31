@@ -24,7 +24,7 @@ COPY ./requirements.txt /app/requirements.txt
 COPY ./conf/nginx.conf /etc/nginx/sites-enabled/default
 
 ## add permissions for nginx user
-RUN chown -R nginx:nginx /app && chmod -R 755 /app && \
+RUN chown -R $USERNAME:$USERNAME /app && chmod -R 755 /app && \
         chown -R $USERNAME:$USERNAME /var/cache/nginx && \
         chown -R $USERNAME:$USERNAME /var/log/nginx && \
         chown -R $USERNAME:$USERNAME /etc/nginx/conf.d && \
