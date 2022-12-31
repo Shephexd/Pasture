@@ -21,15 +21,7 @@ COPY --from=builder /opt/linchfin/build/lib/linchfin /usr/local/lib/python3.8/si
 COPY --from=builder /opt/linchfin/requirements.txt /app/linchfin_requirements.txt
 
 COPY ./requirements.txt /app/requirements.txt
-COPY ./conf/nginx.conf /etc/nginx/sites-enabled/default
-
-## add permissions for nginx user
-RUN chown -R $USERNAME:$USERNAME /app && chmod -R 755 /app && \
-        chown -R $USERNAME:$USERNAME /var/cache/nginx && \
-        chown -R $USERNAME:$USERNAME /var/log/nginx && \
-        chown -R $USERNAME:$USERNAME /etc/nginx/conf.d && \
-        touch /var/run/nginx.pid && \
-        chown -R $USERNAME:$USERNAME /var/run/nginx.pid
+COPY conf/nginx/nginx.conf /etc/nginx/sites-enabled/default
 
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
 RUN pip3 install -r /app/linchfin_requirements.txt \
@@ -38,7 +30,6 @@ RUN pip3 install -r /app/linchfin_requirements.txt \
 COPY . /app
 RUN python manage.py collectstatic --no-input \
     && chown -R $USERNAME:$USERNAME /app
-USER $USERNAME
 
 # RUN gunicorn
 CMD ["/bin/bash", "/app/conf/run.sh"]
