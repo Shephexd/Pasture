@@ -1,3 +1,3 @@
 #/bin/bash
 nginx
-gunicorn pasture.configs.wsgi:application --bind 0.0.0.0:$PORT
+gunicorn pasture.configs.wsgi:application --bind unix/tmp/gunicorn.sock

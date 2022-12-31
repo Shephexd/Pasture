@@ -8,9 +8,7 @@ ARG UID=1000
 ARG GID=1000
 ARG USERNAME=pasture
 
-# set envs
-ENV PORT=8080
-
+EXPOSE 8080
 
 WORKDIR /app
 
