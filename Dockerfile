@@ -17,12 +17,14 @@ WORKDIR /app
 RUN apt-get update \
     && groupadd -g $GID $USERNAME \
     && useradd -g $GID -u $UID -d /home/$USERNAME -s /bin/bash $USERNAME \
-    && apt install git libgeos-dev -y
+    && apt install git libgeos-dev nginx -y
 
 COPY --from=builder /opt/linchfin/build/lib/linchfin /usr/local/lib/python3.8/site-packages/linchfin
 COPY --from=builder /opt/linchfin/requirements.txt /app/linchfin_requirements.txt
 
 COPY ./requirements.txt /app/requirements.txt
+COPY ./conf/nginx.conf /etc/nginx/sites-enabled/default
+
 RUN pip3 install -r /app/linchfin_requirements.txt \
  && pip3 install -r /app/requirements.txt
 
