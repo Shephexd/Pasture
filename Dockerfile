@@ -21,7 +21,7 @@ COPY --from=builder /opt/linchfin/build/lib/linchfin /usr/local/lib/python3.8/si
 COPY --from=builder /opt/linchfin/requirements.txt /app/linchfin_requirements.txt
 
 COPY ./requirements.txt /app/requirements.txt
-COPY conf/nginx/nginx.conf /etc/nginx/sites-enabled/default
+COPY conf/nginx.conf /etc/nginx/sites-enabled/default
 
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
 RUN pip3 install -r /app/linchfin_requirements.txt \
