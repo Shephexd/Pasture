@@ -21,15 +21,19 @@ COPY --from=builder /opt/linchfin/build/lib/linchfin /usr/local/lib/python3.8/si
 COPY --from=builder /opt/linchfin/requirements.txt /app/linchfin_requirements.txt
 
 COPY ./requirements.txt /app/requirements.txt
-COPY conf/nginx.conf /etc/nginx/sites-enabled/default
 
-RUN ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
+RUN chmod 755 /app/conf/run.sh \
+    && mv ./conf/nginx/nginx.conf /etc/nginx/nginx.conf \
+    && mv ./conf/nginx/webapp.conf /etc/nginx/conf.d/webapp.conf \
+    && ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
+
 RUN pip3 install -r /app/linchfin_requirements.txt \
- && pip3 install -r /app/requirements.txt
+ && pip3 install -r /app/requirements.txt \
+
+ENV NGINX_SET_REAL_IP_FROM="10.1.0.0/16"\
+    PROXY_PASS="unix:/tmp/gunicorn.sock"\
+    RESOURCE_DIR="/app/pasture/resources"
 
 COPY . /app
-RUN python manage.py collectstatic --no-input \
-    && chown -R $USERNAME:$USERNAME /app
-
-# RUN gunicorn
-CMD ["/bin/bash", "/app/conf/run.sh"]
+# RUN webapp
+CMD ["/app/conf/run.sh"]
