@@ -23,7 +23,7 @@ COPY --from=builder /opt/linchfin/requirements.txt /app/linchfin_requirements.tx
 COPY ./requirements.txt /app/requirements.txt
 
 RUN pip3 install -r /app/linchfin_requirements.txt \
- && pip3 install -r /app/requirements.txt \
+ && pip3 install -r /app/requirements.txt
 
 ENV NGINX_SET_REAL_IP_FROM="10.1.0.0/16"\
     PROXY_PASS="unix:/tmp/gunicorn.sock"\
