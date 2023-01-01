@@ -7,4 +7,4 @@ sed -i 's,PROXY_PASS,'"$PROXY_PASS"',g' /etc/nginx/conf.d/webapp.conf
 sed -i 's,RESOURCE_DIR,'"$RESOURCE_DIR"',g' /etc/nginx/conf.d/webapp.conf
 
 nginx
-gunicorn pasture.configs.wsgi:application --bind unix://$UWSGI_SOCKET
+gunicorn pasture.configs.wsgi:application --bind unix://$PROXY_PASS
