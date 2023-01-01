@@ -34,4 +34,4 @@ RUN chmod 755 /app/conf/run.sh \
     && mv /app/conf/nginx/webapp.conf /etc/nginx/conf.d/webapp.conf \
     && ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
 # RUN webapp
-CMD ["/app/conf/run.sh"]
+CMD ["/bin/bash", "/app/conf/run.sh"]
