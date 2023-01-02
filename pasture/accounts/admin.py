@@ -1,5 +1,6 @@
 from django.contrib import admin
-from pasture.account.models import OrderHistory, TradeHistory
+
+from pasture.accounts.models import OrderHistory, TradeHistory
 
 
 # Register your models here.
