@@ -1,4 +1,5 @@
 from django.db import models
+
 from pasture.common.behaviors import TimeStampable
 
 
@@ -36,7 +37,7 @@ class OrderHistory(TimeStampable, models.Model):
     reject_reason_name = models.CharField(blank=True, default="", max_length=200)
 
     class Meta:
-        unique_together = ('order_date', 'order_no', 'account_alias')
+        unique_together = ("order_date", "order_no", "account_alias")
 
 
 class TradeHistory(TimeStampable, models.Model):
@@ -44,24 +45,54 @@ class TradeHistory(TimeStampable, models.Model):
     trade_name = models.CharField(max_length=200, help_text="거래명")
     trade_type = models.CharField(max_length=50, help_text="거래구분")
     trade_date = models.DateField(help_text="거래일자")
-    trade_amt = models.DecimalField(default=0, max_digits=20, decimal_places=3, help_text="거래금액(세전)")
-    settle_amt = models.DecimalField(default=0, max_digits=20, decimal_places=3, help_text="정산금액(세후)")
+    trade_amt = models.DecimalField(
+        default=0, max_digits=20, decimal_places=3, help_text="거래금액(세전)"
+    )
+    settle_amt = models.DecimalField(
+        default=0, max_digits=20, decimal_places=3, help_text="정산금액(세후)"
+    )
     # deposit_krw = models.IntegerField(help_text="원화잔액")
     # deposit_usd = models.DecimalField(max_digits=20, decimal_places=3, help_text="외화잔액")
-    trade_qty = models.DecimalField(default=0, max_digits=10, decimal_places=8, help_text="거래수량")
-    holding_qty = models.DecimalField(default=0, max_digits=10, decimal_places=8, help_text="보유수량")
-    trade_price = models.DecimalField(default=0, max_digits=20, decimal_places=3, help_text="거래단가")
-    exchange_rate = models.DecimalField(default=0, max_digits=8, decimal_places=3, help_text="환율")
-    currency_code = models.CharField(max_length=5, help_text="환구분", choices=(
-        ("USD", "USD"),
-        ("KRW", "KRW"),
-    ))
-    commission = models.DecimalField(default=0, max_digits=10, decimal_places=3, help_text="수수료")
-    transaction_tax = models.DecimalField(default=0, max_digits=10, decimal_places=3, help_text="거래세")
-    tax = models.DecimalField(default=0, max_digits=10, decimal_places=3, help_text="세금")
-    vat = models.DecimalField(default=0, max_digits=10, decimal_places=3, help_text="부가세")
-    repay_amt = models.DecimalField(default=0, max_digits=20, decimal_places=3, help_text="상환금액")
-    repay_profit = models.DecimalField(default=0, max_digits=20, decimal_places=3, help_text="상환차익")
-    loan_amt = models.DecimalField(default=0, max_digits=20, decimal_places=3, help_text="대출잔액")
+    trade_qty = models.DecimalField(
+        default=0, max_digits=10, decimal_places=8, help_text="거래수량"
+    )
+    holding_qty = models.DecimalField(
+        default=0, max_digits=10, decimal_places=8, help_text="보유수량"
+    )
+    trade_price = models.DecimalField(
+        default=0, max_digits=20, decimal_places=3, help_text="거래단가"
+    )
+    exchange_rate = models.DecimalField(
+        default=0, max_digits=8, decimal_places=3, help_text="환율"
+    )
+    currency_code = models.CharField(
+        max_length=5,
+        help_text="환구분",
+        choices=(
+            ("USD", "USD"),
+            ("KRW", "KRW"),
+        ),
+    )
+    commission = models.DecimalField(
+        default=0, max_digits=10, decimal_places=3, help_text="수수료"
+    )
+    transaction_tax = models.DecimalField(
+        default=0, max_digits=10, decimal_places=3, help_text="거래세"
+    )
+    tax = models.DecimalField(
+        default=0, max_digits=10, decimal_places=3, help_text="세금"
+    )
+    vat = models.DecimalField(
+        default=0, max_digits=10, decimal_places=3, help_text="부가세"
+    )
+    repay_amt = models.DecimalField(
+        default=0, max_digits=20, decimal_places=3, help_text="상환금액"
+    )
+    repay_profit = models.DecimalField(
+        default=0, max_digits=20, decimal_places=3, help_text="상환차익"
+    )
+    loan_amt = models.DecimalField(
+        default=0, max_digits=20, decimal_places=3, help_text="대출잔액"
+    )
     symbol = models.CharField(max_length=20, null=True, help_text="상품코드")
     product_name = models.CharField(max_length=100, null=True, help_text="상품명")

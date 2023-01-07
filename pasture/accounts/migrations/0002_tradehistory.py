@@ -6,39 +6,131 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0001_initial'),
+        ("accounts", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TradeHistory',
+            name="TradeHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, help_text='created date')),
-                ('updated_at', models.DateTimeField(auto_now=True, help_text='updated date')),
-                ('account_alias', models.CharField(max_length=100)),
-                ('trade_name', models.CharField(help_text='거래명', max_length=200)),
-                ('trade_type', models.CharField(help_text='거래구분', max_length=50)),
-                ('trade_date', models.DateField(help_text='거래일자')),
-                ('trade_amt', models.DecimalField(decimal_places=3, help_text='거래금액(세전)', max_digits=20)),
-                ('settle_amt', models.DecimalField(decimal_places=3, help_text='정산금액(세후)', max_digits=20)),
-                ('trade_qty', models.DecimalField(decimal_places=8, default=0, help_text='거래수량', max_digits=10)),
-                ('holding_qty', models.DecimalField(decimal_places=8, default=0, help_text='보유수량', max_digits=10)),
-                ('trade_price', models.DecimalField(decimal_places=3, default=0, help_text='거래단가', max_digits=20)),
-                ('exchange_rate', models.DecimalField(decimal_places=3, default=0, help_text='환율', max_digits=8)),
-                ('currency_code', models.CharField(choices=[('USD', 'USD'), ('KRW', 'KRW')], help_text='환구분', max_length=5)),
-                ('commission', models.DecimalField(decimal_places=3, default=0, help_text='수수료', max_digits=10)),
-                ('transaction_tax', models.DecimalField(decimal_places=3, default=0, help_text='거래세', max_digits=10)),
-                ('tax', models.DecimalField(decimal_places=3, default=0, help_text='세금', max_digits=10)),
-                ('vat', models.DecimalField(decimal_places=3, default=0, help_text='부가세', max_digits=10)),
-                ('repay_amt', models.DecimalField(decimal_places=3, default=0, help_text='상환금액', max_digits=20)),
-                ('repay_profit', models.DecimalField(decimal_places=3, default=0, help_text='상환차익', max_digits=20)),
-                ('loan_amt', models.DecimalField(decimal_places=3, default=0, help_text='대출잔액', max_digits=20)),
-                ('symbol', models.CharField(help_text='상품코드', max_length=20, null=True)),
-                ('product_name', models.CharField(help_text='상품명', max_length=100, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, help_text="created date"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, help_text="updated date"),
+                ),
+                ("account_alias", models.CharField(max_length=100)),
+                ("trade_name", models.CharField(help_text="거래명", max_length=200)),
+                ("trade_type", models.CharField(help_text="거래구분", max_length=50)),
+                ("trade_date", models.DateField(help_text="거래일자")),
+                (
+                    "trade_amt",
+                    models.DecimalField(
+                        decimal_places=3, help_text="거래금액(세전)", max_digits=20
+                    ),
+                ),
+                (
+                    "settle_amt",
+                    models.DecimalField(
+                        decimal_places=3, help_text="정산금액(세후)", max_digits=20
+                    ),
+                ),
+                (
+                    "trade_qty",
+                    models.DecimalField(
+                        decimal_places=8, default=0, help_text="거래수량", max_digits=10
+                    ),
+                ),
+                (
+                    "holding_qty",
+                    models.DecimalField(
+                        decimal_places=8, default=0, help_text="보유수량", max_digits=10
+                    ),
+                ),
+                (
+                    "trade_price",
+                    models.DecimalField(
+                        decimal_places=3, default=0, help_text="거래단가", max_digits=20
+                    ),
+                ),
+                (
+                    "exchange_rate",
+                    models.DecimalField(
+                        decimal_places=3, default=0, help_text="환율", max_digits=8
+                    ),
+                ),
+                (
+                    "currency_code",
+                    models.CharField(
+                        choices=[("USD", "USD"), ("KRW", "KRW")],
+                        help_text="환구분",
+                        max_length=5,
+                    ),
+                ),
+                (
+                    "commission",
+                    models.DecimalField(
+                        decimal_places=3, default=0, help_text="수수료", max_digits=10
+                    ),
+                ),
+                (
+                    "transaction_tax",
+                    models.DecimalField(
+                        decimal_places=3, default=0, help_text="거래세", max_digits=10
+                    ),
+                ),
+                (
+                    "tax",
+                    models.DecimalField(
+                        decimal_places=3, default=0, help_text="세금", max_digits=10
+                    ),
+                ),
+                (
+                    "vat",
+                    models.DecimalField(
+                        decimal_places=3, default=0, help_text="부가세", max_digits=10
+                    ),
+                ),
+                (
+                    "repay_amt",
+                    models.DecimalField(
+                        decimal_places=3, default=0, help_text="상환금액", max_digits=20
+                    ),
+                ),
+                (
+                    "repay_profit",
+                    models.DecimalField(
+                        decimal_places=3, default=0, help_text="상환차익", max_digits=20
+                    ),
+                ),
+                (
+                    "loan_amt",
+                    models.DecimalField(
+                        decimal_places=3, default=0, help_text="대출잔액", max_digits=20
+                    ),
+                ),
+                (
+                    "symbol",
+                    models.CharField(help_text="상품코드", max_length=20, null=True),
+                ),
+                (
+                    "product_name",
+                    models.CharField(help_text="상품명", max_length=100, null=True),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

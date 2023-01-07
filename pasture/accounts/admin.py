@@ -10,8 +10,8 @@ class OrderHistoryAdmin(admin.ModelAdmin):
         "id",
         "account_alias",
         "order_date",
-        "order_no",
         "trade_type_name",
+        "order_no",
         "symbol",
         "ord_qty",
         "ord_price",
@@ -24,7 +24,15 @@ class OrderHistoryAdmin(admin.ModelAdmin):
         "cancel_code_name",
         "reject_reason",
     )
-    list_filter = ("order_date", "market_code", "channel", "status_name", "created_at", "updated_at")
+    list_filter = (
+        "trade_type_name",
+        "order_date",
+        "market_code",
+        "channel",
+        "status_name",
+        "created_at",
+        "updated_at",
+    )
     search_fields = ("symbol", "description")
 
 
