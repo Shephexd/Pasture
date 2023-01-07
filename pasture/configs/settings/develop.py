@@ -11,18 +11,16 @@ def parse_database_url(db_url):
     if not matched:
         return {}
     db_setting = matched.groupdict()
-    db_setting['ENGINE'] = DB_TYPE_ENGINE_MAP[db_setting.pop('DB_TYPE')]
+    db_setting["ENGINE"] = DB_TYPE_ENGINE_MAP[db_setting.pop("DB_TYPE")]
     return db_setting
 
 
-DB_TYPE_ENGINE_MAP = {
-    "postgres": "django.db.backends.postgresql_psycopg2"
-}
+DB_TYPE_ENGINE_MAP = {"postgres": "django.db.backends.postgresql_psycopg2"}
 
-ALLOWED_HOSTS = os.getenv('HOSTNAME', '').split(',')
-
-DEBUG = False
-if os.getenv('DEBUG', False):
+ALLOWED_HOSTS = os.getenv("HOSTNAME", "").split(",")
+ALLOWED_HOSTS = ["*"]
+DEBUG = True
+if os.getenv("DEBUG", False):
     DEBUG = True
 
 # Database

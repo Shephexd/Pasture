@@ -7,40 +7,86 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='MacroMaster',
+            name="MacroMaster",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, help_text='created date')),
-                ('updated_at', models.DateTimeField(auto_now=True, help_text='updated date')),
-                ('symbol', models.CharField(help_text='symbol', max_length=20)),
-                ('name', models.CharField(help_text='name', max_length=200)),
-                ('period', models.CharField(help_text='period', max_length=2, null=True)),
-                ('category', models.CharField(blank=True, help_text='category', max_length=50, null=True)),
-                ('sub_category', models.CharField(blank=True, help_text='sub category', max_length=100, null=True)),
-                ('description', models.TextField(blank=True, help_text='description', null=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, help_text="created date"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, help_text="updated date"),
+                ),
+                ("symbol", models.CharField(help_text="symbol", max_length=20)),
+                ("name", models.CharField(help_text="name", max_length=200)),
+                (
+                    "period",
+                    models.CharField(help_text="period", max_length=2, null=True),
+                ),
+                (
+                    "category",
+                    models.CharField(
+                        blank=True, help_text="category", max_length=50, null=True
+                    ),
+                ),
+                (
+                    "sub_category",
+                    models.CharField(
+                        blank=True, help_text="sub category", max_length=100, null=True
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(blank=True, help_text="description", null=True),
+                ),
             ],
             options={
-                'unique_together': {('symbol', 'period', 'category', 'sub_category')},
+                "unique_together": {("symbol", "period", "category", "sub_category")},
             },
         ),
         migrations.CreateModel(
-            name='MacroIndex',
+            name="MacroIndex",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, help_text='created date')),
-                ('updated_at', models.DateTimeField(auto_now=True, help_text='updated date')),
-                ('symbol', models.CharField(help_text='symbol', max_length=20)),
-                ('period', models.CharField(help_text='period', max_length=2, null=True)),
-                ('base_date', models.DateField(help_text='base date')),
-                ('value', models.DecimalField(decimal_places=4, max_digits=20)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, help_text="created date"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, help_text="updated date"),
+                ),
+                ("symbol", models.CharField(help_text="symbol", max_length=20)),
+                (
+                    "period",
+                    models.CharField(help_text="period", max_length=2, null=True),
+                ),
+                ("base_date", models.DateField(help_text="base date")),
+                ("value", models.DecimalField(decimal_places=4, max_digits=20)),
             ],
             options={
-                'unique_together': {('symbol', 'period', 'base_date')},
+                "unique_together": {("symbol", "period", "base_date")},
             },
         ),
     ]

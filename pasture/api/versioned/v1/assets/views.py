@@ -1,27 +1,31 @@
 import logging
-import pandas as pd
-from typing import List, Iterable
 from collections import defaultdict, OrderedDict
+from typing import List, Iterable
+
+import pandas as pd
 from neomodel import db
 from rest_framework import viewsets, mixins
 from rest_framework.response import Response
-from pasture.common.viewset import SerializerMapMixin
+
 from pasture.assets.models import Asset, DailyPrice, AssetUniverse
-from .serializers import AssetSerializer, SimpleAssetSerializer, DailyPriceSerializer, AssetUniverseSerializer
+from pasture.common.viewset import SerializerMapMixin
 from .filters import AssetFilterSet, DailyPriceFilterSet, DailyPriceChangesFilterSet
+from .serializers import (
+    AssetSerializer,
+    SimpleAssetSerializer,
+    DailyPriceSerializer,
+    AssetUniverseSerializer,
+)
 
-
-logger = logging.getLogger('pasture')
+logger = logging.getLogger("pasture")
 
 
 class AssetViewSet(SerializerMapMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = AssetSerializer
     queryset = Asset.objects.all()
     filterset_class = AssetFilterSet
-    serializer_class_map = {
-        'list': SimpleAssetSerializer
-    }
-    lookup_field = 'symbol'
+    serializer_class_map = {"list": SimpleAssetSerializer}
+    lookup_field = "symbol"
 
 
 class AssetUniverseViewSet(viewsets.ReadOnlyModelViewSet):
@@ -44,10 +48,14 @@ class DailyPriceChangeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         queryset = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)
-        periods = int(self.request.query_params.get('periods', '1'))
+        periods = int(self.request.query_params.get("periods", "1"))
         if page is not None:
-            df = self.get_pct_change_df([row.to_dict() for row in page], periods=periods)
-            serializer = self.get_serializer([row for i, row in df.iterrows()], many=True)
+            df = self.get_pct_change_df(
+                [row.to_dict() for row in page], periods=periods
+            )
+            serializer = self.get_serializer(
+                [row for i, row in df.iterrows()], many=True
+            )
             return self.get_paginated_response(serializer.data)
 
         df = self.get_pct_change_df(queryset.values(), periods=periods)
@@ -57,8 +65,16 @@ class DailyPriceChangeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     @staticmethod
     def get_pct_change_df(qs: Iterable[DailyPrice], periods: int):
         df = pd.DataFrame(qs)
-        df[['open', 'close', 'adj_close', 'high', 'low']] = (df[
-            ['open', 'close', 'adj_close', 'high', 'low']].pct_change(periods=periods) + 1).astype(float).cumprod()
+        df[["open", "close", "adj_close", "high", "low"]] = (
+            (
+                df[["open", "close", "adj_close", "high", "low"]].pct_change(
+                    periods=periods
+                )
+                + 1
+            )
+            .astype(float)
+            .cumprod()
+        )
 
         if not df.empty:
             return df.iloc[periods:]
@@ -75,17 +91,19 @@ class AssetNetworkViewSet(viewsets.GenericViewSet):
         return _cluster_map
 
     def list(self, request, *args, **kwargs):
-        matched, names = db.cypher_query('MATCH (n)-[r:HAS]->(m:Asset) return n, r, m LIMIT 40')
+        matched, names = db.cypher_query(
+            "MATCH (n)-[r:HAS]->(m:Asset) return n, r, m LIMIT 40"
+        )
         cluster_rel = defaultdict(list)
 
         for _cluster, r, _asset in matched:
-            cluster_name = _cluster._properties['name']
-            asset_name = _asset._properties['name']
+            cluster_name = _cluster._properties["name"]
+            asset_name = _asset._properties["name"]
             cluster_rel[cluster_name].append(asset_name)
 
         cluster_map = OrderedDict()
         for cluster_name, _assets in cluster_rel.items():
-            parent_node, *sub = cluster_name.split('-')
+            parent_node, *sub = cluster_name.split("-")
             if parent_node not in cluster_map:
                 cluster_map[parent_node] = dict()
 

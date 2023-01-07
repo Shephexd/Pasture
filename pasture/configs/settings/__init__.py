@@ -1,12 +1,11 @@
-import os
 from .base import *
 
-env = os.getenv('ENV', 'develop')
+env = os.getenv("ENV", "develop")
 
-if env == 'develop':
+if env == "develop":
     from .develop import *
-elif env == 'heroku':
+elif env == "heroku":
     from .heroku import *
 
 
-SIMPLE_JWT['SIGNING_KEY'] = SECRET_KEY
+SIMPLE_JWT["SIGNING_KEY"] = SECRET_KEY
