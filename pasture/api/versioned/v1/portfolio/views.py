@@ -1,6 +1,5 @@
 import logging
 
-import pandas as pd
 from rest_framework import viewsets, response, exceptions
 
 from linchfin.common.calc import calc_opt_shares
@@ -13,7 +12,7 @@ from linchfin.models.hrp import (
 from linchfin.services.portfolio import PortfolioService
 from linchfin.value.objects import TimeSeries, TimeSeriesRow
 from pasture.assets.models import DailyPrice
-from pasture.common.viewset import SerializerMapMixin, QuerysetMapMixin
+from pasture.common.viewset import SerializerMapMixin, QuerysetMapMixin, DailyPriceMixin
 from pasture.portfolio.models import Portfolio
 from .filters import PortfolioAssetFilterSet
 from .serializers import (
@@ -23,24 +22,6 @@ from .serializers import (
 )
 
 logger = logging.getLogger("pasture")
-
-
-class DailyPriceMixin(viewsets.GenericViewSet):
-    def get_prices(self, queryset, symbols) -> TimeSeries:
-        queryset = queryset.filter(symbol__in=symbols)
-        return self.get_pivot(queryset=queryset)
-
-    def get_last_prices(self, queryset, symbols) -> TimeSeriesRow:
-        return self.get_prices(queryset=queryset, symbols=symbols).iloc[-1]
-
-    def get_pivot(self, queryset, values="close"):
-        ts = TimeSeries(pd.DataFrame(queryset.values()))
-        if not ts.empty:
-            ts = ts.pivot(index="base_date", values=values, columns="symbol").astype(
-                float
-            )
-            ts.index = pd.to_datetime(ts.index)
-        return ts
 
 
 class PortfolioViewSet(

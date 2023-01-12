@@ -6,7 +6,14 @@ from rest_framework.exceptions import ValidationError
 from pasture.portfolio.models import Portfolio
 
 
+class PortfolioWeightSerializer(serializers.Serializer):
+    symbol = serializers.CharField(max_length=10)
+    weight = serializers.DecimalField(max_digits=5, decimal_places=3)
+
+
 class PortfolioSerializer(serializers.ModelSerializer):
+    weights = PortfolioWeightSerializer(many=True)
+
     class Meta:
         model = Portfolio
         fields = ("id", "weights")

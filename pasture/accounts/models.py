@@ -96,3 +96,15 @@ class TradeHistory(TimeStampable, models.Model):
     )
     symbol = models.CharField(max_length=20, null=True, help_text="상품코드")
     product_name = models.CharField(max_length=100, null=True, help_text="상품명")
+
+    @classmethod
+    def get_trade_types(cls):
+        return [
+            "DEPOSIT_INTEREST",
+            "DEPOSIT_KRW",
+            "WITHDRAW_KRW",
+            "DEPOSIT_USD",
+            "WITHDRAW_USD",
+            "DIVIDEND_INPUT_USD",
+            "EXCHANGE_USD",
+        ]
