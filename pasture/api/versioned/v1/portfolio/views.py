@@ -45,6 +45,12 @@ class PortfolioViewSet(
         "SAHRP": SharpAttentionHRPModel,
     }
 
+    def get_latest(self, request, *args, **kwargs):
+        qs = self.filter_queryset(self.get_queryset()).order_by("-base_date")
+        instance = qs.first()
+        serializer = self.get_serializer(instance)
+        return response.Response(serializer.data)
+
     def run_model(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

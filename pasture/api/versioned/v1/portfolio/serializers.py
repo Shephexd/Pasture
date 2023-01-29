@@ -16,7 +16,7 @@ class PortfolioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Portfolio
-        fields = ("id", "weights")
+        fields = ("id", "weights", "base_date")
 
     def validate_weights(self, weights):
         if sum([w["weight"] for w in weights]) != 1:

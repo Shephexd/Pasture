@@ -8,6 +8,7 @@ router.register(r"", PortfolioViewSet)
 
 
 urlpatterns = [
+    path("latest", PortfolioViewSet.as_view({"get": "get_latest"})),
     path("model/", PortfolioViewSet.as_view({"post": "run_model"})),
     path("simulate/qty/", PortfolioViewSet.as_view({"post": "calc_shares"})),
 ] + router.urls
