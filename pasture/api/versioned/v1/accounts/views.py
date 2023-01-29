@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 from django.db.models import Sum
 from rest_framework import viewsets
@@ -11,18 +13,25 @@ from .serializers import (
     AccountHistoryOutputSerializer,
     AssetsEvaluationHistorySerializer,
     AccountEvaluationHistorySerializer,
+    AccountHoldingsHistorySerializer,
 )
-from pasture.common.viewset import DailyPriceMixin
+from pasture.common.viewset import (
+    SerializerMapMixin,
+    QuerysetMapMixin,
+    DailyPriceMixin,
+    ExchangeMixin,
+)
 from linchfin.value.objects import TimeSeries
 from .filters import TradeFilterSet, OrderFilterSet
-
 
 ASK = "01"
 BID = "02"
 TRADE_TAX = 0.15 / 100
 
 
-class AccountTradeViewSet(DailyPriceMixin, viewsets.ReadOnlyModelViewSet):
+class AccountTradeViewSet(
+    ExchangeMixin, DailyPriceMixin, viewsets.ReadOnlyModelViewSet
+):
     queryset = TradeHistory.objects.all()
     serializer_class = AccountTradeHistorySerializer
     filterset_class = TradeFilterSet
@@ -47,12 +56,29 @@ class AccountTradeViewSet(DailyPriceMixin, viewsets.ReadOnlyModelViewSet):
         _dividend = ts.DIVIDEND_INPUT_USD
         _interest = ts.DEPOSIT_INTEREST
 
-        _base_krw.name = "BASE"
-        _base_usd.name = "base_krw"
+        _base_krw.name = "BASE_KRW"
+        _base_usd.name = "BASE_USD"
 
-        history = TimeSeries.concat([_base_krw, _dividend, _interest], axis=1)
-        history[["BASE"]] = history[["BASE"]].cumsum(axis=0)
+        exchange_rates_ts = self.get_exchange_rates(
+            currency_code="USD",
+            start_date=ts.index.min(),
+            end_date=datetime.datetime.now(),
+        )
+        history = TimeSeries.concat(
+            [_base_krw, _base_usd, _dividend, _interest], axis=1
+        )
+        history_index = pd.date_range(
+            history.index.min(), exchange_rates_ts.index.max()
+        )
+        exchange_rates_ts = exchange_rates_ts.reindex(history_index).bfill()
+
+        history = TimeSeries(history, index=history_index)
+        history["BASE"] = history["BASE_KRW"].fillna(0).cumsum(axis=0) + (
+            history["BASE_USD"].fillna(0).cumsum(axis=0) * exchange_rates_ts.USD
+        )
+        history = history.fillna(0)
         history = history.round(2)
+        history.index.name = "trade_date"
         serializer = AccountHistoryOutputSerializer(
             data=history.reset_index().to_dict(orient="records"), many=True
         )
@@ -75,23 +101,63 @@ class AccountTradeViewSet(DailyPriceMixin, viewsets.ReadOnlyModelViewSet):
         return _amount_history
 
 
-class AccountOrderViewSet(DailyPriceMixin, viewsets.ReadOnlyModelViewSet):
+class AccountOrderViewSet(
+    ExchangeMixin,
+    DailyPriceMixin,
+    SerializerMapMixin,
+    QuerysetMapMixin,
+    viewsets.ReadOnlyModelViewSet,
+):
     queryset = OrderHistory.objects.all()
     serializer_class = AccountOrderHistorySerializer
     filterset_class = OrderFilterSet
+    serializer_class_map = {
+        "get_holding_history": AccountHoldingsHistorySerializer,
+        "get_evaluation_history": AccountEvaluationHistorySerializer,
+        "get_assets_evaluation_history": AssetsEvaluationHistorySerializer,
+    }
+
+    def get_holding_history(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        order_history: TimeSeries = self.pivot_orders(queryset=queryset)
+        holding_history = self.calc_holdings(order_history=order_history)
+
+        serializable_data = []
+        records = holding_history.round(3).reset_index().to_dict(orient="records")
+        for row in records:
+            serializable_data += [
+                {"base_date": row["index"], "symbol": k, "qty": v}
+                for k, v in row.items()
+                if k != "index"
+            ]
+        serializer = self.get_serializer(data={"history": serializable_data})
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
 
     def get_evaluation_history(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
 
-        order_history: TimeSeries = self.calc_orders(queryset=queryset)
+        order_history: TimeSeries = self.pivot_orders(queryset=queryset)
         holding_history = self.calc_holdings(order_history=order_history)
-        eval_history = (
-            self.calc_evaluation(holding_history=holding_history).sum(axis=1).round(2)
-        )
-        eval_history.name = "amount"
+        eval_history = self.calc_evaluation(holding_history=holding_history).sum(axis=1)
 
-        serializer = AccountEvaluationHistorySerializer(
-            data=eval_history.reset_index().to_dict(orient="records"), many=True
+        exchange_rates_ts = self.get_exchange_rates(
+            currency_code="USD",
+            start_date=eval_history.index.min(),
+            end_date=eval_history.index.max(),
+        )
+        eval_history = (eval_history * exchange_rates_ts.USD).ffill().round(3)
+        eval_history.name = "eval_amount"
+        eval_history = TimeSeries(eval_history)
+        buy_history = self.pivot_orders(queryset=queryset, value="exec_amt")
+        buy_history = (
+            buy_history.cumsum().sum(axis=1).reindex(eval_history.index).ffill()
+        )
+        eval_history["buy_amount"] = (buy_history * exchange_rates_ts.USD).ffill()
+
+        serializer = self.get_serializer(
+            data={"history": eval_history.reset_index().to_dict(orient="records")}
         )
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
@@ -99,32 +165,32 @@ class AccountOrderViewSet(DailyPriceMixin, viewsets.ReadOnlyModelViewSet):
     def get_assets_evaluation_history(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
 
-        order_history: TimeSeries = self.calc_orders(queryset=queryset)
+        order_history: TimeSeries = self.pivot_orders(queryset=queryset)
         holding_history = self.calc_holdings(order_history=order_history)
         eval_history = self.calc_evaluation(holding_history=holding_history)
 
-        resp = {
-            "history": eval_history.reset_index().to_dict(orient="records"),
-            "symbols": eval_history.columns,
-        }
-        serializer = AssetsEvaluationHistorySerializer(resp)
+        serializable_data = []
+        records = eval_history.round(3).reset_index().to_dict(orient="records")
+        for row in records:
+            serializable_data += [
+                {"base_date": row["index"], "symbol": k, "evaluation": v}
+                for k, v in row.items()
+                if k != "index"
+            ]
+        serializer = self.get_serializer(data={"history": serializable_data})
+        serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
 
     @staticmethod
-    def calc_orders(queryset):
-        ts = TimeSeries(
-            queryset.values("order_date", "symbol", "trade_type", "exec_qty")
-        )
+    def pivot_orders(queryset, value="exec_qty"):
+        ts = TimeSeries(queryset.values("order_date", "symbol", "trade_type", value))
         order_history = (
             ts.groupby(by=["order_date", "symbol", "trade_type"])
             .sum()
             .reset_index()
-            .pivot(
-                index="order_date", columns=["trade_type", "symbol"], values="exec_qty"
-            )
+            .pivot(index="order_date", columns=["trade_type", "symbol"], values=value)
             .fillna(0)
         )
-        import pandas as pd
 
         _indices = set(order_history[BID].index).union(set(order_history[ASK].index))
         _columns = set(order_history[BID].columns).union(
@@ -150,7 +216,6 @@ class AccountOrderViewSet(DailyPriceMixin, viewsets.ReadOnlyModelViewSet):
         holding_history: TimeSeries = holding_history.reindex(index).ffill()
         price_history: TimeSeries = price_history.reindex(index).ffill().bfill()
         eval_history = holding_history * price_history
-        eval_history.index.name = "base_date"
         return eval_history
 
     @staticmethod

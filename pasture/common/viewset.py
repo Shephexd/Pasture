@@ -1,6 +1,9 @@
+import datetime
+
 import pandas as pd
 from rest_framework import viewsets
 from linchfin.value.objects import TimeSeries, TimeSeriesRow
+from pasture.market.models import ExchangeRate
 
 
 class SerializerMapMixin(viewsets.GenericViewSet):
@@ -39,3 +42,26 @@ class DailyPriceMixin(viewsets.GenericViewSet):
             ).astype(float)
             self.set_timeseries_index(ts=ts)
         return ts
+
+
+class ExchangeMixin(viewsets.GenericViewSet):
+    def get_exchange_rates(
+        self,
+        currency_code: str,
+        start_date: datetime.datetime,
+        end_date: datetime.datetime,
+    ):
+        filter_kwargs = {}
+        filter_kwargs["base_date__gte"] = start_date
+        filter_kwargs["base_date__lte"] = end_date
+        exchange_rates = ExchangeRate.objects.filter(
+            currency_code=currency_code, **filter_kwargs
+        )
+        exchange_rates_ts = TimeSeries(
+            exchange_rates.values("base_date", "currency_code", "trading_exchange_rate")
+        ).pivot(
+            columns="currency_code", values="trading_exchange_rate", index="base_date"
+        )
+        _index = pd.date_range(start=start_date, end=end_date)
+        exchange_rates_ts.reindex(_index)
+        return exchange_rates_ts.ffill().bfill()

@@ -10,6 +10,9 @@ urlpatterns = [
     path("trade/groupby", AccountTradeViewSet.as_view({"get": "get_groupby"})),
     path("amount/history", AccountTradeViewSet.as_view({"get": "get_history"})),
     path(
+        "holdings/history", AccountOrderViewSet.as_view({"get": "get_holding_history"})
+    ),
+    path(
         "evaluation/history",
         AccountOrderViewSet.as_view({"get": "get_evaluation_history"}),
     ),

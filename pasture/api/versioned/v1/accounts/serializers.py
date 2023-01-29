@@ -19,6 +19,8 @@ class AccountTradeAggSerializer(serializers.Serializer):
 
 class AccountHistoryOutputSerializer(serializers.Serializer):
     trade_date = serializers.DateTimeField(format="%Y-%m-%d")
+    BASE_KRW = serializers.DecimalField(max_digits=20, decimal_places=1)
+    BASE_USD = serializers.DecimalField(max_digits=20, decimal_places=1)
     BASE = serializers.DecimalField(max_digits=20, decimal_places=1)
     DIVIDEND_INPUT_USD = serializers.DecimalField(max_digits=20, decimal_places=2)
     DEPOSIT_INTEREST = serializers.DecimalField(max_digits=20, decimal_places=1)
@@ -31,11 +33,27 @@ class AccountOrderHistorySerializer(serializers.ModelSerializer):
 
 
 class AccountEvaluationHistorySerializer(serializers.Serializer):
-    base_date = serializers.DateTimeField(format="%Y-%m-%d")
-    # amount = serializers.DecimalField(max_digits=20, decimal_places=2)
-    amount = serializers.FloatField()
+    class RowSerializer(serializers.Serializer):
+        base_date = serializers.DateTimeField(format="%Y-%m-%d")
+        eval_amount = serializers.DecimalField(decimal_places=3, max_digits=20)
+        buy_amount = serializers.DecimalField(decimal_places=3, max_digits=20)
+
+    history = RowSerializer(many=True)
+
+
+class AccountHoldingsHistorySerializer(serializers.Serializer):
+    class RowSerializer(serializers.Serializer):
+        base_date = serializers.DateTimeField(format="%Y-%m-%d")
+        symbol = serializers.CharField(max_length=10)
+        qty = serializers.DecimalField(decimal_places=3, max_digits=20)
+
+    history = RowSerializer(many=True)
 
 
 class AssetsEvaluationHistorySerializer(serializers.Serializer):
-    symbols = serializers.ListField(child=serializers.CharField(max_length=10))
-    history = serializers.ListField(child=serializers.DictField())
+    class RowSerializer(serializers.Serializer):
+        base_date = serializers.DateTimeField(format="%Y-%m-%d")
+        symbol = serializers.CharField(max_length=10)
+        evaluation = serializers.FloatField()
+
+    history = RowSerializer(many=True)
