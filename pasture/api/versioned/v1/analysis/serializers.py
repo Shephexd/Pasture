@@ -75,7 +75,7 @@ class PerformanceInputSerializer(serializers.Serializer):
     )
 
     def validate_portfolio(self, port):
-        if sum([float(w["weight"]) for w in port]) != 1:
+        if round(sum([float(w["weight"]) for w in port]), 4) != 1:
             raise ValueError("weight sum must be 1")
         return port
 

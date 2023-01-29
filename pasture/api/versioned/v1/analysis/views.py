@@ -143,13 +143,16 @@ class PerformanceViewSet(
         daily_returns = calc_daily_returns(ts)
 
         portfolio_returns = TimeSeries(
-            1 + calc_portfolio_return(portfolio=port, daily_returns=daily_returns),
+            1
+            + calc_portfolio_return(
+                portfolio=port, daily_returns=daily_returns[port.symbols]
+            ),
             columns=["portfolio"],
         )
         for bm in serializer.validated_data["bench_marks"]:
             portfolio_returns[bm] = calc_cumulative_returns(daily_returns[bm])
 
-        profiled = asset_profiler.profile(
+        profiled = asset_profiler.run(
             prices=portfolio_returns,
             factors=[
                 "monthly_volatility",
