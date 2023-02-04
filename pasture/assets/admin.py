@@ -1,6 +1,6 @@
 from django.contrib import admin
 from rangefilter.filters import NumericRangeFilter, DateRangeFilter
-from .models import DailyPrice, Asset, AssetUniverse, AssetProfile
+from .models import DailyPrice, Asset, AssetUniverse, AssetProfile, AssetCorrelation
 
 
 @admin.register(Asset)
@@ -71,3 +71,18 @@ class AssetProfileAdmin(admin.ModelAdmin):
         ("cumulative_returns", NumericRangeFilter),
         ("monthly_volatility", NumericRangeFilter),
     )
+    search_fields = ("symbol", )
+
+
+@admin.register(AssetCorrelation)
+class AssetCorrelationAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "symbol",
+        "base_date",
+        "period",
+        "created_at",
+        "updated_at"
+    )
+    list_filter = ("created_at", "updated_at")
+    search_fields = ("symbol", )

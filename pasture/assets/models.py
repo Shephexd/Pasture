@@ -70,3 +70,13 @@ class AssetProfile(TimeStampable, models.Model):
     period = models.CharField(max_length=5, choices=[
         ("3M", "3Month"), ("6M", "6Month"), ("1Y", "1Year"), ("2Y", "2Year")
     ])
+
+
+class AssetCorrelation(TimeStampable, models.Model):
+    symbol = models.CharField(max_length=10)
+    correlation = models.JSONField(null=True)
+    distance = models.JSONField(null=True)
+    base_date = models.DateField(help_text="base_date")
+    period = models.CharField(max_length=5, choices=[
+        ("3M", "3Month"), ("6M", "6Month"), ("1Y", "1Year"), ("2Y", "2Year")
+    ])
