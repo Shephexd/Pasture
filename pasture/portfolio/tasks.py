@@ -44,7 +44,7 @@ def run_portfolio_simulation(
     model = MODEL_CLASS_MAP[model_name](asset_universe=symbols)
     THRESHOLD = 1 / np.log(len(symbols)) / np.sqrt(len(symbols))
 
-    ts = DailyPriceMixin().get_prices(queryset=queryset, symbols=symbols).dropna(axis=0)
+    ts = DailyPriceMixin().get_prices(queryset=queryset, symbols=symbols).dropna(axis=1)
     rebalancing_result = port_service.do_rebalancing(
         model=model,
         prices=ts,
