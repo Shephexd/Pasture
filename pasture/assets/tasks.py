@@ -20,7 +20,7 @@ def run_asset_profile(self, period="1Y"):
     }
 
     queryset = DailyPrice.objects.filter(**filter_kwargs)
-    ts = DailyPriceMixin().get_prices(queryset=queryset, symbols=symbols).dropna(axis=0)
+    ts = DailyPriceMixin().get_prices(queryset=queryset, symbols=symbols).dropna(axis=1)
     base_date = ts.iloc[-1].name.date()
     if AssetProfile.objects.filter(base_date=base_date, period=period).exists():
         logging.warning(f"Already Exist, period: {period} base_date: {base_date}")
