@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_beat",
     "django_celery_results",
+    "rangefilter",
     "corsheaders",
     "rest_framework",
     "rest_framework.authtoken",

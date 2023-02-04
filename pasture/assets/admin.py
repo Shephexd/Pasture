@@ -1,5 +1,5 @@
 from django.contrib import admin
-
+from rangefilter.filters import NumericRangeFilter, DateRangeFilter
 from .models import DailyPrice, Asset, AssetUniverse, AssetProfile
 
 
@@ -62,4 +62,12 @@ class AssetProfileAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
-    list_filter = ("base_date", "period", "created_at", "updated_at")
+    list_filter = (
+        "base_date", "period", "created_at", "updated_at",
+        ("total_returns", NumericRangeFilter),
+        ("daily_volatility", NumericRangeFilter),
+        ("sharp_ratio", NumericRangeFilter),
+        ("beta", NumericRangeFilter),
+        ("cumulative_returns", NumericRangeFilter),
+        ("monthly_volatility", NumericRangeFilter),
+    )
