@@ -32,7 +32,7 @@ TRADE_TAX = 0.15 / 100
 class AccountTradeViewSet(
     ExchangeMixin, DailyPriceMixin, viewsets.ReadOnlyModelViewSet
 ):
-    queryset = TradeHistory.objects.all()
+    queryset = TradeHistory.objects.order_by("trade_date").all()
     serializer_class = AccountTradeHistorySerializer
     filterset_class = TradeFilterSet
 
@@ -147,7 +147,7 @@ class AccountOrderViewSet(
             start_date=eval_history.index.min(),
             end_date=eval_history.index.max(),
         )
-        eval_history = (eval_history * exchange_rates_ts.USD).ffill().round(3)
+        eval_history = (eval_history * exchange_rates_ts.USD).ffill()
         eval_history.name = "eval_amount"
         eval_history = TimeSeries(eval_history)
         buy_history = self.pivot_orders(queryset=queryset, value="exec_amt")
@@ -155,9 +155,9 @@ class AccountOrderViewSet(
             buy_history.cumsum().sum(axis=1).reindex(eval_history.index).ffill()
         )
         eval_history["buy_amount"] = (buy_history * exchange_rates_ts.USD).ffill()
-
+        eval_history.index.name = "base_date"
         serializer = self.get_serializer(
-            data={"history": eval_history.reset_index().to_dict(orient="records")}
+            data={"history": eval_history.round(3).reset_index().to_dict(orient="records")}
         )
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
