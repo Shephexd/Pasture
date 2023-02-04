@@ -1,3 +1,4 @@
+import datetime
 from uuid import uuid4
 
 from django.contrib.postgres.fields import ArrayField
@@ -55,3 +56,17 @@ class DailyPrice(TimeStampable, models.Model):
     class Meta:
         unique_together = ("symbol", "base_date")
         ordering = ["-base_date"]
+
+
+class AssetProfile(TimeStampable, models.Model):
+    symbol = models.CharField(max_length=10)
+    total_returns = models.DecimalField(max_digits=8, decimal_places=3, help_text="high price")
+    daily_volatility = models.DecimalField(max_digits=8, decimal_places=3, help_text="high price")
+    sharp_ratio = models.DecimalField(max_digits=8, decimal_places=3, help_text="high price")
+    beta = models.DecimalField(max_digits=8, decimal_places=3, help_text="high price")
+    cumulative_returns = models.DecimalField(max_digits=8, decimal_places=3, help_text="high price")
+    monthly_volatility = models.DecimalField(max_digits=8, decimal_places=3, help_text="high price")
+    base_date = models.DateField(help_text="base_date")
+    period = models.CharField(max_length=5, choices=[
+        ("3M", "3Month"), ("6M", "6Month"), ("1Y", "1Year"), ("2Y", "2Year")
+    ])

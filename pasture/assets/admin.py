@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import DailyPrice, Asset, AssetUniverse
+from .models import DailyPrice, Asset, AssetUniverse, AssetProfile
 
 
 @admin.register(Asset)
@@ -44,3 +44,22 @@ class DailyPriceAdmin(admin.ModelAdmin):
         "updated_at",
     )
     list_filter = ("created_at", "updated_at")
+
+
+@admin.register(AssetProfile)
+class AssetProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "symbol",
+        "base_date",
+        "period",
+        "total_returns",
+        "daily_volatility",
+        "sharp_ratio",
+        "beta",
+        "cumulative_returns",
+        "monthly_volatility",
+        "created_at",
+        "updated_at",
+    )
+    list_filter = ("base_date", "period", "created_at", "updated_at")
