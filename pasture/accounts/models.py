@@ -1,10 +1,13 @@
+from django.conf import settings
 from django.db import models
 
 from pasture.common.behaviors import TimeStampable
 
 
 class OrderHistory(TimeStampable, models.Model):
-    account_alias = models.CharField(max_length=100)
+    account_alias = models.ForeignKey(settings.AUTH_USER_MODEL, max_length=100,
+                                      db_column="account_alias", to_field="username", on_delete=models.DO_NOTHING,
+                                      related_name="orders")
     order_date = models.DateField(max_length=8)
     order_branch_no = models.CharField(blank=True, default="", max_length=10)
     order_no = models.CharField(blank=True, default="", max_length=10)
@@ -41,7 +44,9 @@ class OrderHistory(TimeStampable, models.Model):
 
 
 class TradeHistory(TimeStampable, models.Model):
-    account_alias = models.CharField(max_length=100)
+    account_alias = models.ForeignKey(settings.AUTH_USER_MODEL, max_length=100,
+                                      db_column="account_alias", to_field="username", on_delete=models.DO_NOTHING,
+                                      related_name="trades")
     trade_name = models.CharField(max_length=200, help_text="거래명")
     trade_type = models.CharField(max_length=50, help_text="거래구분")
     trade_date = models.DateField(help_text="거래일자")
