@@ -1,12 +1,21 @@
 import datetime
 
 import pandas as pd
-from django.db.models import Sum
 from rest_framework import viewsets
 from rest_framework.response import Response
-from pasture.accounts.models import OrderHistory, TradeHistory
+
+from linchfin.value.objects import TimeSeries
+from pasture.accounts.models import Settlement, OrderHistory, TradeHistory
 from pasture.assets.models import DailyPrice
+from pasture.common.viewset import (
+    SerializerMapMixin,
+    QuerysetMapMixin,
+    DailyPriceMixin,
+    ExchangeMixin,
+)
+from .filters import TradeFilterSet, OrderFilterSet
 from .serializers import (
+    AccountSettlementSerializer,
     AccountTradeHistorySerializer,
     AccountOrderHistorySerializer,
     AccountTradeAggSerializer,
@@ -15,18 +24,21 @@ from .serializers import (
     AccountEvaluationHistorySerializer,
     AccountHoldingsHistorySerializer,
 )
-from pasture.common.viewset import (
-    SerializerMapMixin,
-    QuerysetMapMixin,
-    DailyPriceMixin,
-    ExchangeMixin,
-)
-from linchfin.value.objects import TimeSeries
-from .filters import TradeFilterSet, OrderFilterSet
 
 ASK = "01"
 BID = "02"
 TRADE_TAX = 0.15 / 100
+
+
+class AccountViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Settlement.objects.all()
+    serializer_class = AccountSettlementSerializer
+    lookup_field = "base_date"
+    lookup_url_kwarg = "base_date"
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset=queryset)
+        return queryset.filter(account_alias=self.request.user)
 
 
 class AccountTradeViewSet(
@@ -35,16 +47,15 @@ class AccountTradeViewSet(
     queryset = TradeHistory.objects.order_by("trade_date").all()
     serializer_class = AccountTradeHistorySerializer
     filterset_class = TradeFilterSet
+    lookup_field = "account_alias"
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset=queryset)
+        return queryset.filter(account_alias=self.request.user)
 
     def get_groupby(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.queryset)
-        group_by = queryset.values("trade_type").annotate(
-            trade_amt=Sum("trade_amt"),
-            settle_amt=Sum("settle_amt"),
-            tax_amt=Sum("tax"),
-            vat_amt=Sum("vat"),
-        )
-        serializer = AccountTradeAggSerializer(group_by, many=True)
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = AccountTradeAggSerializer(queryset.get_groupby(), many=True)
         return Response(serializer.data)
 
     def get_history(self, request, *args, **kwargs):
@@ -119,7 +130,6 @@ class AccountOrderViewSet(
 
     def get_holding_history(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-
         order_history: TimeSeries = self.pivot_orders(queryset=queryset)
         holding_history = self.calc_holdings(order_history=order_history)
 

@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from pasture.accounts.models import TradeHistory, OrderHistory
+from pasture.accounts.models import Settlement, TradeHistory, OrderHistory
+
+
+class AccountSettlementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Settlement
+        fields = "__all__"
 
 
 class AccountTradeHistorySerializer(serializers.ModelSerializer):
