@@ -1,15 +1,12 @@
+import datetime
 from datetime import datetime
 
-import django
-
-django.setup()
 import pandas as pd
-from linchfin.value.objects import TimeSeries
-from pasture.configs.celery import app
 
+from linchfin.value.objects import TimeSeries
 from pasture.accounts.models import Settlement, TradeHistory
 from pasture.common.viewset import ExchangeMixin
-import datetime
+from pasture.configs.celery import app
 
 number_fields = ["base_io_krw", "base_io_usd", "dividend_usd", "deposit_interest_krw"]
 ffill_fields = ["base_amount_krw", "exchange_rate"]
@@ -103,6 +100,3 @@ def settle_trade(self):
                            target_history.assign(account_alias_id=_filter_kwargs["account_alias"]).iterrows()]
         Settlement.objects.bulk_create(settlement_objs)
         print("Finish Settlement\n", target_history)
-
-
-settle_trade(None)
