@@ -1,7 +1,35 @@
 from django.conf import settings
 from django.db import models
 
+from pasture.accounts.managers import TradeHistoryManager
 from pasture.common.behaviors import TimeStampable
+
+
+class Settlement(TimeStampable, models.Model):
+    class Meta:
+        unique_together = ("base_date", "account_alias")
+
+    base_date = models.DateField(max_length=8)
+
+    account_alias = models.ForeignKey(settings.AUTH_USER_MODEL, max_length=100,
+                                      db_column="account_alias", to_field="username", on_delete=models.DO_NOTHING,
+                                      related_name="account_settlement")
+
+    # io
+    base_io_krw = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+    base_io_usd = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+    dividend_usd = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+    deposit_interest_krw = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+
+    # history
+    base_amount_krw = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+    account_evaluation_krw = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+    account_evaluation_usd = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+    stock_evaluation_krw = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+    stock_evaluation_usd = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+
+    # series
+    exchange_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True)
 
 
 class OrderHistory(TimeStampable, models.Model):
@@ -44,6 +72,8 @@ class OrderHistory(TimeStampable, models.Model):
 
 
 class TradeHistory(TimeStampable, models.Model):
+    objects = TradeHistoryManager()
+
     account_alias = models.ForeignKey(settings.AUTH_USER_MODEL, max_length=100,
                                       db_column="account_alias", to_field="username", on_delete=models.DO_NOTHING,
                                       related_name="trades")
