@@ -34,6 +34,7 @@ def settle_trade(self):
 
         is_settlement_exists = last_settlement_queryset.exists()
         if is_settlement_exists:
+
             prev_history = TimeSeries(last_settlement_queryset.values(*history_columns)).sort_values("base_date")
             _filter_kwargs["trade_date__gt"] = prev_history.iloc[-1].base_date
             history = pd.concat([history, prev_history.df])
@@ -88,8 +89,8 @@ def settle_trade(self):
         history.loc[settlement_indexer, "base_amount_krw"] = \
             history.loc[settlement_indexer, "base_amount_krw"].astype(float) + \
             history.loc[settlement_indexer, "base_io_krw"].fillna(0).cumsum() + \
-            (history.loc[settlement_indexer, "base_io_usd"].fillna(0).cumsum() * history.loc[
-                settlement_indexer, "exchange_rate"])
+            (history.loc[settlement_indexer, "base_io_usd"].fillna(0) *
+             history.loc[settlement_indexer, "exchange_rate"]).cumsum()
 
         target_history = history.loc[settlement_indexer, :]
         target_history = target_history.round(3)
