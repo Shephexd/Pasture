@@ -5,14 +5,31 @@ from pasture.accounts.managers import TradeHistoryManager
 from pasture.common.behaviors import TimeStampable
 
 
+class Account(TimeStampable, models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, max_length=100,
+                              to_field="username", on_delete=models.DO_NOTHING, )
+    account_alias = models.CharField(max_length=100, unique=True)
+    account_type = models.CharField(default="NORMAL", max_length=10, choices=[
+        ("NORMAL", "NORMAL"),
+        ("ISA", "ISA"),
+        ("PENSION", "PENSION"),
+        ("IRP", "IRP"),
+    ])
+    is_active = models.BooleanField(default=True)
+    description = models.CharField(default="", null=True, max_length=100)
+
+    def __str__(self):
+        return f"Account({self.account_alias})"
+
+
 class Settlement(TimeStampable, models.Model):
     class Meta:
         unique_together = ("base_date", "account_alias")
 
     base_date = models.DateField(max_length=8)
-
-    account_alias = models.ForeignKey(settings.AUTH_USER_MODEL, max_length=100,
-                                      db_column="account_alias", to_field="username", on_delete=models.DO_NOTHING,
+    account_alias = models.ForeignKey(Account, max_length=100,
+                                      db_column="account_alias", to_field="account_alias",
+                                      on_delete=models.DO_NOTHING,
                                       related_name="account_settlement")
 
     # io
@@ -33,8 +50,8 @@ class Settlement(TimeStampable, models.Model):
 
 
 class OrderHistory(TimeStampable, models.Model):
-    account_alias = models.ForeignKey(settings.AUTH_USER_MODEL, max_length=100,
-                                      db_column="account_alias", to_field="username", on_delete=models.DO_NOTHING,
+    account_alias = models.ForeignKey(Account, max_length=100,
+                                      db_column="account_alias", to_field="account_alias", on_delete=models.DO_NOTHING,
                                       related_name="orders")
     order_date = models.DateField(max_length=8)
     order_branch_no = models.CharField(blank=True, default="", max_length=10)
@@ -74,8 +91,8 @@ class OrderHistory(TimeStampable, models.Model):
 class TradeHistory(TimeStampable, models.Model):
     objects = TradeHistoryManager()
 
-    account_alias = models.ForeignKey(settings.AUTH_USER_MODEL, max_length=100,
-                                      db_column="account_alias", to_field="username", on_delete=models.DO_NOTHING,
+    account_alias = models.ForeignKey(Account, max_length=100,
+                                      db_column="account_alias", to_field="account_alias", on_delete=models.DO_NOTHING,
                                       related_name="trades")
     trade_name = models.CharField(max_length=200, help_text="거래명")
     trade_type = models.CharField(max_length=50, help_text="거래구분")
