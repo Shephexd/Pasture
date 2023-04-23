@@ -1,14 +1,16 @@
-from linchfin.value.encoders import CorrelationEncoder
-from linchfin.core.analysis.profiler import AssetProfiler
-from linchfin.value.objects import Table
-from pasture.common.viewset import DailyPriceMixin
-from pasture.configs.celery import app
-from pasture.assets.models import DailyPrice, Asset, AssetProfile, AssetCorrelation
 import datetime
 import logging
 
+from linchfin.common.calc import get_sorted_corr
+from linchfin.core.analysis.profiler import AssetProfiler
+from linchfin.value.encoders import CorrelationEncoder
+from linchfin.value.objects import Table
+from pasture.assets.models import Asset, AssetProfile, AssetCorrelation
+from pasture.common.helpers import DailyPriceHelper
+from pasture.configs.celery import app
 
 CORR_PERIODS = 5
+
 
 @app.task(bind=True)
 def run_asset_profile(self, period="1Y"):
@@ -17,13 +19,11 @@ def run_asset_profile(self, period="1Y"):
     from_date = AssetProfiler.calc_relative_date(period=period, to_date=to_date)
 
     filter_kwargs = {
-        "symbol__in": symbols,
         "base_date__gte": from_date,
         "base_date__lte": to_date
     }
 
-    queryset = DailyPrice.objects.filter(**filter_kwargs)
-    ts = DailyPriceMixin().get_prices(queryset=queryset, symbols=symbols).dropna(axis=1)
+    ts = DailyPriceHelper.get_prices(symbols=symbols, filter_kwargs=filter_kwargs).dropna(axis=1)
     base_date = ts.iloc[-1].name.date()
     if AssetProfile.objects.filter(base_date=base_date, period=period).exists():
         logging.warning(f"Already Exist, period: {period} base_date: {base_date}")
@@ -52,14 +52,7 @@ def run_correlation(self, period="1Y"):
     to_date = datetime.datetime.now()
     from_date = AssetProfiler.calc_relative_date(period=period, to_date=to_date)
 
-    filter_kwargs = {
-        "symbol__in": symbols,
-        "base_date__gte": from_date,
-        "base_date__lte": to_date
-    }
-
-    queryset = DailyPrice.objects.filter(**filter_kwargs)
-    ts = DailyPriceMixin().get_prices(queryset=queryset, symbols=symbols).dropna(axis=1)
+    ts = DailyPriceHelper.get_prices(symbols=symbols, start=from_date, end=to_date).dropna(axis=1)
     base_date = ts.iloc[-1].name.date()
 
     if AssetCorrelation.objects.filter(base_date=base_date, period=period).exists():
@@ -69,15 +62,21 @@ def run_correlation(self, period="1Y"):
     correlation_objects = []
 
     corr = ts.calc_corr(periods=CORR_PERIODS)
-    distances = CorrelationEncoder.encode(corr)
     corr.value = corr.value.round(4)
-    distances.value = distances.value.round(4)
+    sorted_corr = get_sorted_corr(corr=corr)
 
-    for (symbol, corr_row), (_, dist_row) in zip(corr.iterrows(), distances.iterrows()):
+    distances = CorrelationEncoder.encode(corr)
+    distances.value = distances.value.round(4)
+    sorted_distances = get_sorted_corr(corr=distances)
+
+    for (symbol, corr_row), (_, dist_row) in zip(sorted_corr.iterrows(), sorted_distances.iterrows()):
         correlation_objects.append(
             AssetCorrelation(symbol=symbol, base_date=base_date, period=period,
-                             correlation=corr_row.to_dict(),
-                             distance=dist_row.to_dict())
+                             correlation=[{"source": symbol, "target": k, "value": v} for k, v in
+                                          zip(corr_row.index, corr_row.to_list())],
+                             distance=[{"source": symbol, "target": k, "value": v} for k, v in
+                                       zip(dist_row.index, dist_row.to_list())]
+                             )
         )
 
     created_objects = AssetCorrelation.objects.bulk_create(objs=correlation_objects)

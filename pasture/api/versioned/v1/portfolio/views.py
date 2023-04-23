@@ -10,9 +10,9 @@ from linchfin.models.hrp import (
     SharpAttentionHRPModel,
 )
 from linchfin.services.portfolio import PortfolioService
-from linchfin.value.objects import TimeSeries, TimeSeriesRow
+from linchfin.value.objects import TimeSeriesRow
 from pasture.assets.models import DailyPrice
-from pasture.common.viewset import SerializerMapMixin, QuerysetMapMixin, DailyPriceMixin
+from pasture.common.viewset import SerializerMapMixin, QuerysetMapMixin
 from pasture.portfolio.models import Portfolio
 from .filters import PortfolioAssetFilterSet
 from .serializers import (
@@ -25,7 +25,7 @@ logger = logging.getLogger("pasture")
 
 
 class PortfolioViewSet(
-    DailyPriceMixin, SerializerMapMixin, QuerysetMapMixin, viewsets.ModelViewSet
+    SerializerMapMixin, QuerysetMapMixin, viewsets.ModelViewSet
 ):
     serializer_class = PortfolioSerializer
     queryset = Portfolio.objects.all()
@@ -67,7 +67,8 @@ class PortfolioViewSet(
         model_class = self.model_class_map[serializer.validated_data["model"]]
         model_instance = model_class(asset_universe=symbols)
 
-        ts = self.get_prices(queryset=queryset, symbols=symbols)
+        ts = port_service.get_time_series(symbols=symbols)
+
         if ts.empty:
             raise exceptions.ValidationError(
                 "Matched data is empty, check symbols and periods"

@@ -5,7 +5,7 @@ import pandas as pd
 
 from linchfin.value.objects import TimeSeries
 from pasture.accounts.models import Settlement, TradeHistory
-from pasture.common.viewset import ExchangeMixin
+from pasture.common.helpers import ExchangeHelper
 from pasture.configs.celery import app
 
 number_fields = ["base_io_krw", "base_io_usd", "dividend_usd", "deposit_interest_krw"]
@@ -50,7 +50,7 @@ def settle_trade(self):
             start_date = min(start_date, trade_queryset.first().trade_date)
 
         # trade, order, exchange
-        exchange_rates_ts = ExchangeMixin.get_exchange_rates(
+        exchange_rates_ts = ExchangeHelper.get_exchange_rates(
             currency_code="USD",
             start_date=start_date,
             end_date=datetime.datetime.now(),

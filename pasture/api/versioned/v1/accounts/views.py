@@ -6,12 +6,12 @@ from rest_framework.response import Response
 
 from linchfin.value.objects import TimeSeries
 from pasture.accounts.models import Settlement, OrderHistory, TradeHistory
-from pasture.assets.models import DailyPrice
+from pasture.common.helpers import (
+    ExchangeHelper,
+)
 from pasture.common.viewset import (
     SerializerMapMixin,
-    QuerysetMapMixin,
-    DailyPriceMixin,
-    ExchangeMixin,
+    QuerysetMapMixin
 )
 from .filters import TradeFilterSet, OrderFilterSet
 from .serializers import (
@@ -41,9 +41,7 @@ class AccountViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset.filter(account_alias=self.request.user)
 
 
-class AccountTradeViewSet(
-    ExchangeMixin, DailyPriceMixin, viewsets.ReadOnlyModelViewSet
-):
+class AccountTradeViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = TradeHistory.objects.order_by("trade_date").all()
     serializer_class = AccountTradeHistorySerializer
     filterset_class = TradeFilterSet
@@ -70,7 +68,7 @@ class AccountTradeViewSet(
         _base_krw.name = "BASE_KRW"
         _base_usd.name = "BASE_USD"
 
-        exchange_rates_ts = self.get_exchange_rates(
+        exchange_rates_ts = ExchangeHelper.get_exchange_rates(
             currency_code="USD",
             start_date=ts.index.min(),
             end_date=datetime.datetime.now(),
@@ -85,7 +83,7 @@ class AccountTradeViewSet(
 
         history = TimeSeries(history, index=history_index)
         history["BASE"] = history["BASE_KRW"].fillna(0).cumsum(axis=0) + (
-            history["BASE_USD"].fillna(0).cumsum(axis=0) * exchange_rates_ts.USD
+                history["BASE_USD"].fillna(0).cumsum(axis=0) * exchange_rates_ts.USD
         )
         history = history.fillna(0)
         history = history.round(2)
@@ -101,9 +99,9 @@ class AccountTradeViewSet(
         ts = TimeSeries(queryset.values("trade_date", "trade_type", "settle_amt"))
         ts = (
             ts.groupby(by=["trade_date", "trade_type"])
-            .sum()
-            .reset_index()
-            .pivot(index="trade_date", values="settle_amt", columns="trade_type")
+                .sum()
+                .reset_index()
+                .pivot(index="trade_date", values="settle_amt", columns="trade_type")
         )
         _amount_history = TimeSeries(
             ts, columns=TradeHistory.get_trade_types(), index=ts.index
@@ -113,8 +111,6 @@ class AccountTradeViewSet(
 
 
 class AccountOrderViewSet(
-    ExchangeMixin,
-    DailyPriceMixin,
     SerializerMapMixin,
     QuerysetMapMixin,
     viewsets.ReadOnlyModelViewSet,
@@ -150,9 +146,8 @@ class AccountOrderViewSet(
 
         order_history: TimeSeries = self.pivot_orders(queryset=queryset)
         holding_history = self.calc_holdings(order_history=order_history)
-        eval_history = self.calc_evaluation(holding_history=holding_history).sum(axis=1)
-
-        exchange_rates_ts = self.get_exchange_rates(
+        eval_history = OrderHistory.objects.calc_evaluation(holding_history=holding_history).sum(axis=1)
+        exchange_rates_ts = ExchangeHelper.get_exchange_rates(
             currency_code="USD",
             start_date=eval_history.index.min(),
             end_date=eval_history.index.max(),
@@ -165,6 +160,7 @@ class AccountOrderViewSet(
             buy_history.cumsum().sum(axis=1).reindex(eval_history.index).ffill()
         )
         eval_history["buy_amount"] = (buy_history * exchange_rates_ts.USD).ffill()
+        eval_history["profit_loss"] = eval_history["buy_amount"] - eval_history["eval_amount"]
         eval_history.index.name = "base_date"
         serializer = self.get_serializer(
             data={"history": eval_history.round(3).reset_index().to_dict(orient="records")}
@@ -174,10 +170,9 @@ class AccountOrderViewSet(
 
     def get_assets_evaluation_history(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-
         order_history: TimeSeries = self.pivot_orders(queryset=queryset)
         holding_history = self.calc_holdings(order_history=order_history)
-        eval_history = self.calc_evaluation(holding_history=holding_history)
+        eval_history = OrderHistory.objects.calc_evaluation(holding_history=holding_history)
 
         serializable_data = []
         records = eval_history.round(3).reset_index().to_dict(orient="records")
@@ -196,10 +191,10 @@ class AccountOrderViewSet(
         ts = TimeSeries(queryset.values("order_date", "symbol", "trade_type", value))
         order_history = (
             ts.groupby(by=["order_date", "symbol", "trade_type"])
-            .sum()
-            .reset_index()
-            .pivot(index="order_date", columns=["trade_type", "symbol"], values=value)
-            .fillna(0)
+                .sum()
+                .reset_index()
+                .pivot(index="order_date", columns=["trade_type", "symbol"], values=value)
+                .fillna(0)
         )
 
         _indices = set(order_history[BID].index).union(set(order_history[ASK].index))
@@ -215,18 +210,6 @@ class AccountOrderViewSet(
             order_history[ASK], index=order_index, columns=_columns
         ).fillna(0)
         return bid_table - ask_table
-
-    def calc_evaluation(self, holding_history) -> TimeSeries:
-        price_history: TimeSeries = self.get_prices(
-            symbols=holding_history.columns, queryset=DailyPrice.objects.all()
-        )
-        index: pd.DatetimeIndex = pd.date_range(
-            start=holding_history.index[0], end=price_history.index[-1]
-        )
-        holding_history: TimeSeries = holding_history.reindex(index).ffill()
-        price_history: TimeSeries = price_history.reindex(index).ffill().bfill()
-        eval_history = holding_history * price_history
-        return eval_history
 
     @staticmethod
     def calc_holdings(order_history: TimeSeries):
