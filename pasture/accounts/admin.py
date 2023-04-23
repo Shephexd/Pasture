@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from pasture.accounts.models import Account, Settlement, OrderHistory, TradeHistory
+from pasture.accounts.models import Account, Holding, Settlement, OrderHistory, TradeHistory
 
 
 # Register your models here.
@@ -8,6 +8,14 @@ from pasture.accounts.models import Account, Settlement, OrderHistory, TradeHist
 class Account(admin.ModelAdmin):
     list_display = (
         "owner", "account_alias", "account_type", "is_active", "description"
+    )
+
+
+# Register your models here.
+@admin.register(Holding)
+class Account(admin.ModelAdmin):
+    list_display = (
+        "base_date", "account_alias", "symbol", "holding_qty", "eval_amt", "market_price", "buy_qty", "sell_qty"
     )
 
 

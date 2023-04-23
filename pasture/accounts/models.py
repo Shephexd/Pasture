@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from pasture.accounts.managers import TradeHistoryManager
+from pasture.accounts.managers import HoldingManager, TradeHistoryManager, OrderHistoryManager
 from pasture.common.behaviors import TimeStampable
 
 
@@ -30,7 +30,7 @@ class Settlement(TimeStampable, models.Model):
     account_alias = models.ForeignKey(Account, max_length=100,
                                       db_column="account_alias", to_field="account_alias",
                                       on_delete=models.DO_NOTHING,
-                                      related_name="account_settlement")
+                                      related_name="settlements")
 
     # io
     base_io_krw = models.DecimalField(max_digits=15, decimal_places=5, null=True)
@@ -49,7 +49,30 @@ class Settlement(TimeStampable, models.Model):
     exchange_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True)
 
 
+class Holding(TimeStampable, models.Model):
+    class Meta:
+        unique_together = ("base_date", "account_alias", "symbol")
+
+    objects = HoldingManager()
+
+    base_date = models.DateField(max_length=8)
+    account_alias = models.ForeignKey(Account, max_length=100,
+                                      db_column="account_alias", to_field="account_alias",
+                                      on_delete=models.DO_NOTHING,
+                                      related_name="holdings")
+
+    symbol = models.CharField(blank=True, default="", max_length=10)
+    holding_qty = models.IntegerField()
+    eval_amt = models.DecimalField(max_digits=25, decimal_places=8, null=True)
+    market_price = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+
+    buy_qty = models.IntegerField(default=0)
+    sell_qty = models.IntegerField(default=0)
+
+
 class OrderHistory(TimeStampable, models.Model):
+    objects = OrderHistoryManager()
+
     account_alias = models.ForeignKey(Account, max_length=100,
                                       db_column="account_alias", to_field="account_alias", on_delete=models.DO_NOTHING,
                                       related_name="orders")
