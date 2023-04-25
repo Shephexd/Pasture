@@ -1,16 +1,18 @@
-from pasture.common.viewset import DailyPriceMixin
-from pasture.configs.celery import app
-from pasture.portfolio.models import Portfolio
-from pasture.assets.models import DailyPrice
-import pytz
 import datetime
+
 import numpy as np
-from linchfin.services import PortfolioService
+import pytz
+
 from linchfin.models.hrp import (
     HierarchyRiskParityModel,
     AttentionHRPModel,
     SharpAttentionHRPModel,
 )
+from linchfin.services import PortfolioService
+from pasture.assets.models import DailyPrice
+from pasture.common.helpers import DailyPriceHelper
+from pasture.configs.celery import app
+from pasture.portfolio.models import Portfolio
 
 MODEL_CLASS_MAP = {
     "HRP": HierarchyRiskParityModel,
@@ -25,7 +27,7 @@ MIN_DAYS = 20
 
 @app.task(bind=True)
 def run_portfolio_simulation(
-    self, symbols=[], start_date=None, end_date=None, model_name="SAHRP"
+        self, symbols=[], start_date=None, end_date=None, model_name="SAHRP"
 ):
     today = datetime.datetime.now(pytz.timezone("Asia/Seoul"))
     if start_date is None:
@@ -40,11 +42,10 @@ def run_portfolio_simulation(
     }
     queryset = DailyPrice.objects.filter(**filter_kwargs)
     port_service = PortfolioService(repo=queryset)
-
     model = MODEL_CLASS_MAP[model_name](asset_universe=symbols)
     THRESHOLD = 1 / np.log(len(symbols)) / np.sqrt(len(symbols))
 
-    ts = DailyPriceMixin().get_prices(queryset=queryset, symbols=symbols).dropna(axis=1)
+    ts = DailyPriceHelper.get_prices(symbols=symbols).dropna(axis=1)
     rebalancing_result = port_service.do_rebalancing(
         model=model,
         prices=ts,
@@ -56,6 +57,11 @@ def run_portfolio_simulation(
     port_date = last_portfolio.name.date()
 
     print("port_date:", port_date)
+
+    port_changes = rebalancing_result.get_port_changes(prices=ts)
+    port_returns = np.exp(port_changes.sum(axis=1).apply(np.log).sum())
+    volatility = port_changes.sum(axis=1).std()
+
     if not Portfolio.objects.filter(base_date=port_date).exists():
         _weights = []
         for symbol, w in last_portfolio.to_dict().items():
@@ -65,6 +71,8 @@ def run_portfolio_simulation(
             weights=_weights,
             base_date=port_date,
             description=f"Simulation Period:{min(ts.index)}~{max(ts.index)}" + \
-            f"Symbols: {symbols}",
+                        f"\nSymbols: {symbols}" + \
+                        f"\nport simulation acc returns: {round(port_returns, 3)}" + \
+                        f"\nport simulation volatility: {round(volatility, 3)}",
         )
         port.save()
