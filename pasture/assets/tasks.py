@@ -18,12 +18,7 @@ def run_asset_profile(self, period="1Y"):
     to_date = datetime.datetime.now()
     from_date = AssetProfiler.calc_relative_date(period=period, to_date=to_date)
 
-    filter_kwargs = {
-        "base_date__gte": from_date,
-        "base_date__lte": to_date
-    }
-
-    ts = DailyPriceHelper.get_prices(symbols=symbols, filter_kwargs=filter_kwargs).dropna(axis=1)
+    ts = DailyPriceHelper.get_prices(symbols=symbols, start=from_date, end=to_date).dropna(axis=1)
     base_date = ts.iloc[-1].name.date()
     if AssetProfile.objects.filter(base_date=base_date, period=period).exists():
         logging.warning(f"Already Exist, period: {period} base_date: {base_date}")
