@@ -33,7 +33,6 @@ def settle_trade(self):
 
         is_settlement_exists = last_settlement_queryset.exists()
         if is_settlement_exists:
-
             prev_history = TimeSeries(last_settlement_queryset.values(*history_columns)).sort_values("base_date")
             _filter_kwargs["trade_date__gt"] = prev_history.iloc[-1].base_date
             history = pd.concat([history, prev_history.df])
@@ -51,7 +50,7 @@ def settle_trade(self):
         # trade, order, exchange
         exchange_rates_ts = ExchangeHelper.get_exchange_rates(
             currency_code="USD",
-            start_date=start_date,
+            start_date=start_date - datetime.timedelta(days=5),
             end_date=datetime.datetime.now(),
         )
 
@@ -63,40 +62,39 @@ def settle_trade(self):
             print("No trade for settlement")
             return
 
+        exchange_rates_ts = exchange_rates_ts.resample('D').ffill()
+
         # set history index and exchange_rate
         ts = TradeHistory.objects.pivot_history(queryset=trade_queryset)
         end_date = history.index.append(exchange_rates_ts.index).append(ts.index).max()
-        history_index = pd.date_range(start=start_date, end=end_date)
+        history_index = pd.date_range(start=start_date - datetime.timedelta(days=1), end=end_date)
         history = history.reindex(history_index)
-        history.loc[exchange_rates_ts.index, "exchange_rate"] = exchange_rates_ts.USD
-        history.loc[:, "exchange_rate"] = history.loc[:, "exchange_rate"].ffill().bfill()
+
+        history.loc[:, ffill_fields] = history.loc[:, ffill_fields].ffill()
+        history = history.iloc[1:]
+        history.loc[:, "exchange_rate"] = exchange_rates_ts.loc[history.index, "USD"]
+        history.loc[:, "exchange_rate"] = history.loc[:, "exchange_rate"].ffill()
 
         if not is_settlement_exists:
             history.loc[history.index[0], "base_amount_krw"] = 0
 
-        settlement_indexer = history.index[history.index >= ts.index[-1]]
-        settlement_indexer = settlement_indexer.append(exchange_rates_ts.index)
-        settlement_indexer = pd.date_range(start=settlement_indexer.min(), end=end_date)
-
-        history.loc[settlement_indexer, number_fields] = 0
-        history.loc[:, ffill_fields] = history.loc[:, ffill_fields].ffill()
+        history.loc[:, number_fields] = 0
         history.loc[ts.index, "base_io_krw"] = ts.DEPOSIT_KRW + ts.WITHDRAW_KRW
         history.loc[ts.index, "base_io_usd"] = ts.DEPOSIT_USD + ts.WITHDRAW_USD
         history.loc[ts.index, "dividend_usd"] = ts.DIVIDEND_INPUT_USD
         history.loc[ts.index, "deposit_interest_krw"] = ts.DEPOSIT_INTEREST
 
-        history.loc[settlement_indexer, "base_amount_krw"] = \
-            history.loc[settlement_indexer, "base_amount_krw"].astype(float) + \
-            history.loc[settlement_indexer, "base_io_krw"].fillna(0).cumsum() + \
-            (history.loc[settlement_indexer, "base_io_usd"].fillna(0) *
-             history.loc[settlement_indexer, "exchange_rate"]).cumsum()
+        history.loc[:, "base_amount_krw"] = \
+            history.loc[:, "base_amount_krw"].astype(float) + \
+            history.loc[:, "base_io_krw"].fillna(0).cumsum() + \
+            (history.loc[:, "base_io_usd"].fillna(0) *
+             history.loc[:, "exchange_rate"]).cumsum()
 
-        target_history = history.loc[settlement_indexer, :]
-        target_history = target_history.round(3)
-        target_history.index.name = "base_date"
-        target_history.reset_index(inplace=True)
+        history = history.round(3)
+        history.index.name = "base_date"
+        history.reset_index(inplace=True)
 
         settlement_objs = [Settlement(**row) for i, row in
-                           target_history.assign(account_alias_id=_filter_kwargs["account_alias"]).iterrows()]
+                           history.assign(account_alias_id=_filter_kwargs["account_alias"]).iterrows()]
         Settlement.objects.bulk_create(settlement_objs)
-        print("Finish Settlement\n", target_history)
+        print("Finish Settlement\n", history)
