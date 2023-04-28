@@ -5,7 +5,7 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 
 from linchfin.value.objects import TimeSeries
-from pasture.accounts.models import Settlement, OrderHistory, TradeHistory
+from pasture.accounts.models import Account, OrderHistory, TradeHistory
 from pasture.common.helpers import (
     ExchangeHelper,
 )
@@ -15,7 +15,8 @@ from pasture.common.viewset import (
 )
 from .filters import TradeFilterSet, OrderFilterSet
 from .serializers import (
-    AccountSettlementSerializer,
+    AccountSerializer,
+    AccountDetailSerializer,
     AccountTradeHistorySerializer,
     AccountOrderHistorySerializer,
     AccountTradeAggSerializer,
@@ -30,15 +31,18 @@ BID = "02"
 TRADE_TAX = 0.15 / 100
 
 
-class AccountViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Settlement.objects.all()
-    serializer_class = AccountSettlementSerializer
-    lookup_field = "base_date"
-    lookup_url_kwarg = "base_date"
+class AccountViewSet(SerializerMapMixin, viewsets.ReadOnlyModelViewSet):
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
+    lookup_field = "account_alias"
+    lookup_url_kwarg = "account_alias"
+    serializer_class_map = {
+        "retrieve": AccountDetailSerializer,
+    }
 
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset=queryset)
-        return queryset.filter(account_alias=self.request.user)
+        return queryset.filter(owner=self.request.user)
 
 
 class AccountTradeViewSet(viewsets.ReadOnlyModelViewSet):

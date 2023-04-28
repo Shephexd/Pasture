@@ -1,12 +1,38 @@
 from rest_framework import serializers
 
-from pasture.accounts.models import Settlement, TradeHistory, OrderHistory
+from pasture.accounts.models import Account, Settlement, TradeHistory, OrderHistory
+
+
+class AccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = "__all__"
 
 
 class AccountSettlementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Settlement
-        fields = "__all__"
+        fields = ("base_date", "base_io_krw", "base_io_usd", "dividend_usd", "deposit_interest_krw", "base_amount_krw",
+                  "account_evaluation_krw", "account_evaluation_usd", "stock_evaluation_krw", "stock_evaluation_usd",
+                  "exchange_rate", "exchange_rate")
+
+
+class AccountDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ("owner", "account_alias", "account_type", "is_active", "description", "settlement")
+
+    settlement = serializers.SerializerMethodField(default={})
+
+    def get_settlement(self, instance):
+        if not isinstance(instance, Account):
+            return {}
+
+        account: Account = instance
+        if not account.settlements.exists():
+            return {}
+        serializer = AccountSettlementSerializer(account.settlements.last())
+        return serializer.data
 
 
 class AccountTradeHistorySerializer(serializers.ModelSerializer):
