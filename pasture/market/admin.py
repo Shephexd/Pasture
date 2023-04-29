@@ -24,9 +24,12 @@ class MacroIndexAdmin(admin.ModelAdmin):
 
 @admin.register(ExchangeRate)
 class ExchangeRateAdmin(admin.ModelAdmin):
-    list_displays = (
+    list_display = (
         "currency_code",
         "base_date",
+        "currency_name",
+        "kor_book_exchange_rate",
+        "kor_trading_exchange_rate",
         "sending_exchange_rate",
         "receiving_exchange_rate",
         "trading_exchange_rate",
