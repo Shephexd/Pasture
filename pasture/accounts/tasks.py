@@ -12,6 +12,21 @@ ffill_fields = ["base_amount_krw", "exchange_rate"]
 history_columns = ["base_date"] + number_fields + ffill_fields
 
 
+def clean_untracked_settlement(account_alias):
+    last_corrected_settlement_obj = None
+    for _settlement_obj in Settlement.objects.filter(account_alias=account_alias).order_by("-base_date"):
+        if not TradeHistory.objects.filter(trade_date__lte=_settlement_obj.base_date,
+                                           created_at__gte=_settlement_obj.created_at,
+                                           account_alias=account_alias).exists():
+            break
+
+        last_corrected_settlement_obj = _settlement_obj
+
+    if last_corrected_settlement_obj:
+        deleted, _ = Settlement.objects.filter(base_date__gte=last_corrected_settlement_obj.base_date).delete()
+        print("deleted Settlement: ", deleted)
+
+
 @app.task(bind=True)
 def settle_trade(self):
     """
@@ -27,6 +42,8 @@ def settle_trade(self):
     1     1     1 = settle_trade() -> settle_order()
     """
     for _filter_kwargs in TradeHistory.objects.values("account_alias").distinct():
+        clean_untracked_settlement(**_filter_kwargs)
+
         start_date = datetime.datetime.now().date()
         history = TimeSeries(columns=history_columns)
         last_settlement_queryset = Settlement.objects.filter(**_filter_kwargs)
