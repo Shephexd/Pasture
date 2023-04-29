@@ -88,10 +88,12 @@ def settle_trade(self):
         history = history.reindex(history_index)
 
         history.loc[:, ffill_fields] = history.loc[:, ffill_fields].ffill()
-        history = history.iloc[1:]
-        history.loc[:, "exchange_rate"] = exchange_rates_ts.loc[history.index, "USD"]
+
+        exchange_history_index = history_index.intersection(exchange_rates_ts.index)
+        history.loc[exchange_history_index, "exchange_rate"] = exchange_rates_ts.loc[exchange_history_index, "USD"]
         history.loc[:, "exchange_rate"] = history.loc[:, "exchange_rate"].ffill()
 
+        history = history.iloc[1:]
         if not is_settlement_exists:
             history.loc[history.index[0], "base_amount_krw"] = 0
 
@@ -103,9 +105,9 @@ def settle_trade(self):
 
         history.loc[:, "base_amount_krw"] = \
             history.loc[:, "base_amount_krw"].astype(float) + \
-            history.loc[:, "base_io_krw"].fillna(0).cumsum() + \
-            (history.loc[:, "base_io_usd"].fillna(0) *
-             history.loc[:, "exchange_rate"]).cumsum()
+            history.loc[:, "base_io_krw"].astype(float).fillna(0).cumsum() + \
+            (history.loc[:, "base_io_usd"].astype(float).fillna(0) *
+             history.loc[:, "exchange_rate"].astype(float)).cumsum()
 
         history = history.round(3)
         history.index.name = "base_date"
