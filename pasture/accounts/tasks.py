@@ -121,9 +121,23 @@ def settle_trade(self):
         print("Finish Settlement\n", history)
 
 
-def flatten_holdings(row, account_alias_id):
-    return [Holding(symbol=k, holding_qty=v, account_alias_id=account_alias_id, base_date=row.name) for k, v in
-            row.to_dict().items()]
+def flatten_holdings(row, account_alias_id, bid_table, ask_table):
+    holdings = []
+    for k, v in row.to_dict().items():
+        h = Holding(symbol=k, holding_qty=v, account_alias_id=account_alias_id, base_date=row.name)
+        try:
+            h.buy_qty = bid_table.loc[row.name, k]
+        except KeyError:
+            h.buy_qty = 0
+
+        try:
+            h.sell_qty = ask_table.loc[row.name, k]
+        except KeyError:
+            h.sell_qty = 0
+
+        if h.holding_qty > 0 or h.buy_qty > 0 or h.sell_qty > 0:
+            holdings.append(h)
+    return holdings
 
 
 class CalcHoldingTask(celery.Task):
@@ -151,14 +165,20 @@ class CalcHoldingTask(celery.Task):
         symbols = set(current_holding_history.columns.to_list())
 
         if not order_table.empty:
-            symbols.union(set(order_table.symbol.to_list()))
+            symbols = symbols.union(set(order_table.symbol.to_list()))
 
-        last_holding_date = current_holding_history.index[-1]
+        last_holding_date = order_table.loc[0, "order_date"]
+        last_holdings = pd.Series(0, symbols, name=last_holding_date - datetime.timedelta(days=1))
+
+        if not current_holding_history.empty:
+            last_holding_date = current_holding_history.index[-1]
+            last_holdings = current_holding_history.iloc[-1]
         exchange_history = ExchangeHelper.get_exchange_rates(currency_code="USD", start_date=last_holding_date,
                                                              end_date=datetime.datetime.now())
         index = pd.date_range(start=last_holding_date - datetime.timedelta(days=7), end=exchange_history.index[-1])
         qty_history: TimeSeries = TimeSeries(index=index, columns=symbols)
-        qty_history.iloc[0] = current_holding_history.iloc[-1]
+
+        qty_history.iloc[0] = last_holdings
         qty_history, bid_table, ask_table = self.set_qty_table(qty_history=qty_history,
                                                                new_order_table=order_table)
 
@@ -166,7 +186,8 @@ class CalcHoldingTask(celery.Task):
         if len(qty_history) <= 1:
             return []
 
-        records = qty_history.iloc[1:].apply(flatten_holdings, account_alias_id=account_alias_id, axis=1).sum()
+        records = qty_history.iloc[1:].apply(flatten_holdings, account_alias_id=account_alias_id, axis=1,
+                                             bid_table=bid_table, ask_table=ask_table).sum()
         return records
 
     def set_qty_table(self, qty_history, new_order_table):
