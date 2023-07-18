@@ -226,3 +226,8 @@ CELERY_RESULT_BACKEND = os.getenv(
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+
+# DJANGO GRAPHENE SETTING
+GRAPHENE = {
+    "SCHEMA": "pasture.api.graphql.schema.schema"
+}

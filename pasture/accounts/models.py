@@ -65,6 +65,7 @@ class Holding(TimeStampable, models.Model):
     holding_qty = models.IntegerField()
     eval_amt = models.DecimalField(max_digits=25, decimal_places=8, null=True)
     market_price = models.DecimalField(max_digits=15, decimal_places=5, null=True)
+    unit_price = models.DecimalField(max_digits=15, decimal_places=5, null=True)
 
     buy_qty = models.IntegerField(default=0)
     sell_qty = models.IntegerField(default=0)
