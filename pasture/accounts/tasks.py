@@ -1,9 +1,11 @@
 import datetime
 
+import celery
 import pandas as pd
 
 from linchfin.value.objects import TimeSeries
-from pasture.accounts.models import Settlement, TradeHistory
+from pasture.accounts.managers import BID, ASK
+from pasture.accounts.models import TradeHistory, OrderHistory, Settlement, Holding
 from pasture.common.helpers import ExchangeHelper
 from pasture.configs.celery import app
 
@@ -117,3 +119,78 @@ def settle_trade(self):
                            history.assign(account_alias_id=_filter_kwargs["account_alias"]).iterrows()]
         Settlement.objects.bulk_create(settlement_objs)
         print("Finish Settlement\n", history)
+
+
+def flatten_holdings(row, account_alias_id):
+    return [Holding(symbol=k, holding_qty=v, account_alias_id=account_alias_id, base_date=row.name) for k, v in
+            row.to_dict().items()]
+
+
+class CalcHoldingTask(celery.Task):
+    def run(self):
+        for _filter_kwargs in TradeHistory.objects.values("account_alias").distinct():
+            holding_history = Holding.objects.filter(**_filter_kwargs)
+            is_holding_exists = holding_history.exists()
+
+            order_queryset = OrderHistory.objects.filter(**_filter_kwargs)
+            last_holding_history, order_table = TimeSeries(), TimeSeries()
+
+            if is_holding_exists:
+                last_holding_history = TimeSeries(holding_history.values()).pivot(columns="symbol",
+                                                                                  values="holding_qty",
+                                                                                  index="base_date").fillna(0)
+                order_queryset = order_queryset.filter(order_date__gt=last_holding_history.index[-1])
+
+            if order_queryset.exists():
+                order_table = TimeSeries(order_queryset.values("order_date", "exec_qty", "trade_type", "symbol"))
+            records = self.calc_holdings(account_alias_id=_filter_kwargs["account_alias"],
+                                         order_table=order_table, current_holding_history=last_holding_history)
+            Holding.objects.bulk_create(records)
+
+    def calc_holdings(self, account_alias_id, order_table: TimeSeries, current_holding_history: TimeSeries):
+        symbols = set(current_holding_history.columns.to_list())
+
+        if not order_table.empty:
+            symbols.union(set(order_table.symbol.to_list()))
+
+        last_holding_date = current_holding_history.index[-1]
+        exchange_history = ExchangeHelper.get_exchange_rates(currency_code="USD", start_date=last_holding_date,
+                                                             end_date=datetime.datetime.now())
+        index = pd.date_range(start=last_holding_date - datetime.timedelta(days=7), end=exchange_history.index[-1])
+        qty_history: TimeSeries = TimeSeries(index=index, columns=symbols)
+        qty_history.iloc[0] = current_holding_history.iloc[-1]
+        qty_history, bid_table, ask_table = self.set_qty_table(qty_history=qty_history,
+                                                               new_order_table=order_table)
+
+        qty_history = qty_history.loc[last_holding_date:]
+        if len(qty_history) <= 1:
+            return []
+
+        records = qty_history.iloc[1:].apply(flatten_holdings, account_alias_id=account_alias_id, axis=1).sum()
+        return records
+
+    def set_qty_table(self, qty_history, new_order_table):
+        bid_table = TimeSeries(0, index=qty_history.index[1:], columns=qty_history.columns)
+        ask_table = TimeSeries(0, index=qty_history.index[1:], columns=qty_history.columns)
+
+        qty_history = qty_history.fillna(0)
+        if new_order_table.empty:
+            return qty_history.cumsum().iloc[1:], bid_table, ask_table
+
+        bid_table = new_order_table[new_order_table.trade_type == BID].groupby(
+            by=["trade_type", "order_date", "symbol"]).sum()
+        if not bid_table.empty:
+            bid_table = bid_table.reset_index().pivot(index="order_date", columns="symbol",
+                                                      values="exec_qty").fillna(0)
+            qty_history.loc[bid_table.index, bid_table.columns] += bid_table
+
+        ask_table = new_order_table[new_order_table.trade_type == ASK].groupby(
+            by=["trade_type", "order_date", "symbol"]).sum()
+        if not ask_table.empty:
+            ask_table = ask_table.reset_index().pivot(index="order_date", columns="symbol",
+                                                      values="exec_qty").fillna(0)
+            qty_history.loc[ask_table.index, ask_table.columns] -= ask_table
+        return qty_history.cumsum().iloc[1:], bid_table, ask_table
+
+
+app.register_task(CalcHoldingTask())
