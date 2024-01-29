@@ -36,7 +36,7 @@ def get_secret(base_dir: Path):
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 # SECURITY WARNING: Check CORS
 CORS_ORIGIN_WHITELIST = ["http://127.0.0.1:3000", "http://localhost:3000", "http://admin.linchfin.com"]
