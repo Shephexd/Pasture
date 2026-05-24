@@ -70,21 +70,27 @@ jobs:
       - name: BuildAndPush
         run: |
           {
-            echo '## BuildAndPush log'
-            echo '```'
             echo "step starts"
             IMG_BASE="ghcr.io/${{ steps.vars.outputs.owner_lc }}/linchfin-domain"
             SHA7="${{ steps.vars.outputs.sha7 }}"
             echo "IMG_BASE=$IMG_BASE"
             echo "SHA7=$SHA7"
-            ls -la 2>&1 | head -20
+            ls -la 2>&1 | head -30
             docker buildx version
+            set +e
             docker buildx build --platform linux/amd64 --file Dockerfile --push --provenance=false --tag "$IMG_BASE:sha-$SHA7" --tag "$IMG_BASE:develop" . 2>&1
             rc=$?
-            echo "EXIT=$rc"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit ${rc:-0}
+            set -e
+            echo "BUILDX_EXIT=$rc"
+          } | tee /tmp/buildlog.txt
+          echo "log size: $(wc -c < /tmp/buildlog.txt)"
+      - name: upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buildlog
+          path: /tmp/buildlog.txt
+          retention-days: 7
       - run: |
           echo "image: ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/${{ env.IMAGE_NAME }}"
           echo "digest: ${{ steps.build.outputs.digest }}"
