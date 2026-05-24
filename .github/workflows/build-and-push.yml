@@ -67,7 +67,7 @@ jobs:
           echo "tags: ${{ steps.meta.outputs.tags }}"
           echo "labels: ${{ steps.meta.outputs.labels }}"
           echo "json: ${{ steps.meta.outputs.json }}"
-      - name: Build & push (shell)
+      - name: BuildAndPush
         run: |
           echo "step starts"
           IMG_BASE="ghcr.io/${{ steps.vars.outputs.owner_lc }}/linchfin-domain"
