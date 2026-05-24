@@ -69,14 +69,22 @@ jobs:
           echo "json: ${{ steps.meta.outputs.json }}"
       - name: BuildAndPush
         run: |
-          echo "step starts"
-          IMG_BASE="ghcr.io/${{ steps.vars.outputs.owner_lc }}/linchfin-domain"
-          SHA7="${{ steps.vars.outputs.sha7 }}"
-          echo "IMG_BASE=$IMG_BASE"
-          echo "SHA7=$SHA7"
-          ls -la
-          docker buildx version
-          docker buildx build --platform linux/amd64 --file Dockerfile --push --provenance=false --tag "$IMG_BASE:sha-$SHA7" --tag "$IMG_BASE:develop" .
+          {
+            echo '## BuildAndPush log'
+            echo '```'
+            echo "step starts"
+            IMG_BASE="ghcr.io/${{ steps.vars.outputs.owner_lc }}/linchfin-domain"
+            SHA7="${{ steps.vars.outputs.sha7 }}"
+            echo "IMG_BASE=$IMG_BASE"
+            echo "SHA7=$SHA7"
+            ls -la 2>&1 | head -20
+            docker buildx version
+            docker buildx build --platform linux/amd64 --file Dockerfile --push --provenance=false --tag "$IMG_BASE:sha-$SHA7" --tag "$IMG_BASE:develop" . 2>&1
+            rc=$?
+            echo "EXIT=$rc"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit ${rc:-0}
       - run: |
           echo "image: ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/${{ env.IMAGE_NAME }}"
           echo "digest: ${{ steps.build.outputs.digest }}"
