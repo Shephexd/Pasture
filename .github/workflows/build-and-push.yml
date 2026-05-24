@@ -53,16 +53,24 @@ jobs:
           echo "tags: ${{ steps.meta.outputs.tags }}"
           echo "labels: ${{ steps.meta.outputs.labels }}"
           echo "json: ${{ steps.meta.outputs.json }}"
-      - id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          provenance: false
+      - name: Build & push (shell)
+        env:
+          IMG_BASE: ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/${{ env.IMAGE_NAME }}
+        run: |
+          set -x
+          echo "Files in context root:"
+          ls -la | head -30
+          echo "--- buildx version ---"
+          docker buildx version
+          echo "--- direct build ---"
+          docker buildx build \
+            --platform linux/amd64 \
+            --file Dockerfile \
+            --push \
+            --tag "$IMG_BASE:sha-${GITHUB_SHA::7}" \
+            --tag "$IMG_BASE:develop" \
+            --provenance=false \
+            .
       - run: |
           echo "image: ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/${{ env.IMAGE_NAME }}"
           echo "digest: ${{ steps.build.outputs.digest }}"
