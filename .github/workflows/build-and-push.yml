@@ -42,12 +42,18 @@ jobs:
           echo "sha7=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-qemu-action@v3
         with: { platforms: linux/amd64 }
+      - name: probe after qemu
+        run: echo "probe after qemu OK"
       - uses: docker/setup-buildx-action@v3
+      - name: probe after buildx
+        run: echo "probe after buildx OK"
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: probe after login
+        run: echo "probe after login OK"
       - id: meta
         uses: docker/metadata-action@v5
         with:
