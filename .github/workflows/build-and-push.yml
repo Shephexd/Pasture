@@ -1,0 +1,62 @@
+# 리포: Shephexd/Pasture  →  ghcr.io/<owner>/linchfin-domain
+# 위치: .github/workflows/build-and-push.yml
+#
+# 주의: Pasture 는 Django + libgeos-dev + libpq-dev + nginx 가 들어가 빌드 사이즈가 큽니다.
+#       amd64 네이티브 러너에서도 약 8~12분 예상.
+
+name: build-and-push
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths-ignore: ["**.md", "docs/**", "scripts/**.csv", "scripts/**.xlsx"]
+  workflow_dispatch:
+    inputs:
+      tag: { description: "Override tag", required: false }
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: linchfin-domain
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+        with: { platforms: linux/amd64 }
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+            type=sha,format=short
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=linchfin-domain
+          cache-to: type=gha,scope=linchfin-domain,mode=max
+          provenance: false
+      - run: |
+          echo "image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}"
+          echo "digest: ${{ steps.build.outputs.digest }}"
