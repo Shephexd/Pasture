@@ -62,17 +62,14 @@ jobs:
           echo "labels: ${{ steps.meta.outputs.labels }}"
           echo "json: ${{ steps.meta.outputs.json }}"
       - name: Build & push (shell)
-        env:
-          IMG_BASE: ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/${{ env.IMAGE_NAME }}
-          SHA7: ${{ steps.vars.outputs.sha7 }}
         run: |
-          echo "== context =="
+          echo "step starts"
+          IMG_BASE="ghcr.io/${{ steps.vars.outputs.owner_lc }}/linchfin-domain"
+          SHA7="${{ steps.vars.outputs.sha7 }}"
+          echo "IMG_BASE=$IMG_BASE"
+          echo "SHA7=$SHA7"
           ls -la
-          echo
-          echo "== buildx =="
           docker buildx version
-          echo
-          echo "== building $IMG_BASE:sha-$SHA7 =="
           docker buildx build --platform linux/amd64 --file Dockerfile --push --provenance=false --tag "$IMG_BASE:sha-$SHA7" --tag "$IMG_BASE:develop" .
       - run: |
           echo "image: ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/${{ env.IMAGE_NAME }}"
