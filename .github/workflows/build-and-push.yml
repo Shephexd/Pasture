@@ -32,6 +32,7 @@ jobs:
       - id: vars
         run: |
           echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "sha7=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-qemu-action@v3
         with: { platforms: linux/amd64 }
       - uses: docker/setup-buildx-action@v3
@@ -56,21 +57,16 @@ jobs:
       - name: Build & push (shell)
         env:
           IMG_BASE: ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/${{ env.IMAGE_NAME }}
+          SHA7: ${{ steps.vars.outputs.sha7 }}
         run: |
-          set -x
-          echo "Files in context root:"
-          ls -la | head -30
-          echo "--- buildx version ---"
+          echo "== context =="
+          ls -la
+          echo
+          echo "== buildx =="
           docker buildx version
-          echo "--- direct build ---"
-          docker buildx build \
-            --platform linux/amd64 \
-            --file Dockerfile \
-            --push \
-            --tag "$IMG_BASE:sha-${GITHUB_SHA::7}" \
-            --tag "$IMG_BASE:develop" \
-            --provenance=false \
-            .
+          echo
+          echo "== building $IMG_BASE:sha-$SHA7 =="
+          docker buildx build --platform linux/amd64 --file Dockerfile --push --provenance=false --tag "$IMG_BASE:sha-$SHA7" --tag "$IMG_BASE:develop" .
       - run: |
           echo "image: ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/${{ env.IMAGE_NAME }}"
           echo "digest: ${{ steps.build.outputs.digest }}"
