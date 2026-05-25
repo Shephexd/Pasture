@@ -68,22 +68,25 @@ jobs:
           echo "labels: ${{ steps.meta.outputs.labels }}"
           echo "json: ${{ steps.meta.outputs.json }}"
       - name: BuildAndPush
+        id: build
         run: |
-          {
-            echo "step starts"
-            IMG_BASE="ghcr.io/${{ steps.vars.outputs.owner_lc }}/linchfin-domain"
-            SHA7="${{ steps.vars.outputs.sha7 }}"
-            echo "IMG_BASE=$IMG_BASE"
-            echo "SHA7=$SHA7"
-            ls -la 2>&1 | head -30
-            docker buildx version
-            set +e
-            docker buildx build --platform linux/amd64 --file Dockerfile --push --provenance=false --tag "$IMG_BASE:sha-$SHA7" --tag "$IMG_BASE:develop" . 2>&1
-            rc=$?
-            set -e
-            echo "BUILDX_EXIT=$rc"
-          } | tee /tmp/buildlog.txt
-          echo "log size: $(wc -c < /tmp/buildlog.txt)"
+          set -eo pipefail
+          IMG_BASE="ghcr.io/${{ steps.vars.outputs.owner_lc }}/linchfin-domain"
+          SHA7="${{ steps.vars.outputs.sha7 }}"
+          echo "::group::pre-build checks"
+          echo "IMG_BASE=$IMG_BASE"
+          echo "SHA7=$SHA7"
+          ls -la | head -20
+          docker buildx version
+          echo "::endgroup::"
+          docker buildx build \
+            --platform linux/amd64 \
+            --file Dockerfile \
+            --push \
+            --provenance=false \
+            --tag "$IMG_BASE:sha-$SHA7" \
+            --tag "$IMG_BASE:develop" \
+            . 2>&1 | tee /tmp/buildlog.txt
       - name: upload log
         if: always()
         uses: actions/upload-artifact@v4
