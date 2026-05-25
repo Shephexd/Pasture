@@ -9,6 +9,10 @@ permissions:
   contents: read
   packages: write
 
+# Node.js 20 → 24 강제 옵트인 (2026-06-02 부터 기본). 경고 제거.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
     runs-on: ubuntu-latest
