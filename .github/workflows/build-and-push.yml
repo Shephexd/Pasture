@@ -37,18 +37,21 @@ jobs:
           set -eo pipefail
           IMG="ghcr.io/${{ steps.o.outputs.lc }}/linchfin-domain"
           SHA7="${GITHUB_SHA:0:7}"
+          # Pasture Dockerfile 의 ARG LINCHFIN_IMAGE 를 GHCR 의 linchfin-engine 으로 override.
+          # (이전 build 가 docker.io/library/linchfin:latest 를 pull 시도하다 실패하던 원인 해소)
+          LINCHFIN_IMG="ghcr.io/${{ steps.o.outputs.lc }}/linchfin-engine:develop"
           echo "Will build: $IMG:sha-$SHA7"
-          # 실제 build 결과를 직접 step exit 으로 전달.
+          echo "Using builder: $LINCHFIN_IMG"
           docker buildx build \
             --platform linux/amd64 \
             --file Dockerfile \
+            --build-arg "LINCHFIN_IMAGE=$LINCHFIN_IMG" \
             --tag "$IMG:sha-$SHA7" \
             --tag "$IMG:develop" \
             --push \
             --provenance=false \
             --progress=plain \
             . 2>&1 | tee /tmp/build.log
-          # PIPESTATUS[0] = docker exit code (tee's exit is [1])
           BUILD_RC=${PIPESTATUS[0]}
           echo "BUILDX_EXIT=$BUILD_RC"
           exit "$BUILD_RC"
