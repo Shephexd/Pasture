@@ -16,22 +16,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Buildx + login + build (single step, all output captured)
-        run: |
-          set -x
-          owner_lc="${GITHUB_REPOSITORY_OWNER,,}"
-          sha7="${GITHUB_SHA:0:7}"
-          IMG="ghcr.io/${owner_lc}/linchfin-domain"
-          echo "::notice::building ${IMG}:sha-${sha7}"
-          docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$GITHUB_TOKEN"
-          docker buildx create --use --name builder || docker buildx use builder
-          docker buildx build \
-            --platform linux/amd64 \
-            --file Dockerfile \
-            --tag "$IMG:sha-${sha7}" \
-            --tag "$IMG:develop" \
-            --push \
-            --provenance=false \
-            .
+      - name: Buildx login build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            set -x
+            owner_lc="${GITHUB_REPOSITORY_OWNER,,}"
+            sha7="${GITHUB_SHA:0:7}"
+            IMG="ghcr.io/${owner_lc}/linchfin-domain"
+            echo "TARGET=${IMG}:sha-${sha7}"
+            echo "ACTOR=${GITHUB_ACTOR}"
+            echo "TOKEN_LEN=${#GITHUB_TOKEN}"
+            echo "---docker login---"
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+            echo "---buildx setup---"
+            docker buildx create --use --name lf 2>&1 || true
+            docker buildx inspect --bootstrap
+            echo "---build---"
+            docker buildx build \
+              --platform linux/amd64 \
+              --file Dockerfile \
+              --tag "$IMG:sha-${sha7}" \
+              --tag "$IMG:develop" \
+              --push \
+              --provenance=false \
+              .
+            echo "BUILD_RESULT=$?"
+          } 2>&1 | tee /tmp/build.log
+          echo "---tail of log---"
+          tail -30 /tmp/build.log
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: /tmp/build.log
+          retention-days: 7
